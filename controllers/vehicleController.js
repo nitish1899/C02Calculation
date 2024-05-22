@@ -83,6 +83,7 @@ async function findCO2Emission(req,res){
     
     // get vechileInfo using vehicle number
     const vehicleInfo = (await axios.request(options)).data;
+    console.log(vehicleInfo)
     const dateString = vehicleInfo.data.registration_date;
     const date = new Date(dateString);
     const year = date.getFullYear();
@@ -90,7 +91,7 @@ async function findCO2Emission(req,res){
 
     // get other details for vechileType
     const otherDetails = await findByType(req.body.VechileType);
-
+        
     if(vehicleCategory !== otherDetails.category ){
 
         throw new Error('Vehicle type not found');

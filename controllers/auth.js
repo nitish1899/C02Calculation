@@ -35,7 +35,7 @@ async function register(req, res) {
         userId: newUser._id,
         userName:newUser.userName,
         mobileNumber:newUser.mobileNumber,
-        profileImage:newUser.profileImage,
+        image:newUser.image,
         token: token,
       },
     });
@@ -83,7 +83,7 @@ console.log('isPinCorrect',isPinCorrect)
               userId: existingUser._id,
               userName:existingUser.userName,
               mobileNumber:existingUser.mobileNumber,
-              profileImage:existingUser.profileImage,
+              image:existingUser.image,
               token: token,
             },
         }) 
