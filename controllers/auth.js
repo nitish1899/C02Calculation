@@ -23,7 +23,7 @@ async function register(req, res) {
         mobileNumber: newUser.mobileNumber,
         id: newUser._id,
       },
-      process.env.secretKey,
+      process.env.TOKEN_SECRET,
       { expiresIn: "1d" }
     );
 
@@ -35,7 +35,6 @@ async function register(req, res) {
         userId: newUser._id,
         userName:newUser.userName,
         mobileNumber:newUser.mobileNumber,
-        // image:newUser.image,
         token: token,
       },
     });
@@ -73,7 +72,7 @@ console.log('isPinCorrect',isPinCorrect)
           mobileNumber: existingUser.mobileNumber,
           id: existingUser._id,
         },
-        process.env.secretKey,
+        process.env.TOKEN_SECRET,
         { expiresIn: "1d" }
       );
   

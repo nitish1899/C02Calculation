@@ -1,33 +1,36 @@
-const axios = require('axios');
 const Vehicle = require('../models/vehicle');
+const { orderBy, round } = require('lodash');
+const axios = require('axios');
 require('dotenv').config();
+const vehicleRcDetails = require('../services/vehicleRCdetails');
+// const distanceCalculation = require('../services/distanceCalculation');
 
- async function getDistance(sourcePincode,destinationPincode){
-  try {
-    const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/distancematrix/json`,
-        {
-            params: {
-                origins: sourcePincode,
-                destinations: destinationPincode,
-                key: process.env.googleGeoCodingApiKey
-            }
-        }
-    );
+async function getDistance(sourcePincode,destinationPincode){
+    try {
+      const response = await axios.get(
+          `https://maps.googleapis.com/maps/api/distancematrix/json`,
+          {
+              params: {
+                  origins: sourcePincode,
+                  destinations: destinationPincode,
+                  key: process.env.GOOGLE_GEOCODING_API_KEY
+              }
+          }
+      );
+  
+      // Extract distance information
+      const distanceInfo = response.data.rows[0].elements[0];
+      const distance = distanceInfo.distance.text;
+      console.log(distance);
+      return distance;
+  
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+  }
+  }
 
-    // Extract distance information
-    const distanceInfo = response.data.rows[0].elements[0];
-    const distance = distanceInfo.distance.text;
-    
-    return distance;
-
-} catch (error) {
-	console.error(error);
-    return res.status(500).json({ error: 'Internal Server Error' });
-}
-}
-
-
+/*
 async function insert(req, res) {
     try {
         // Create a new vehicle record using the request body
@@ -49,16 +52,17 @@ async function insert(req, res) {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+*/
 
-async function findByType(vehicleType) {
+async function findByVehicleCategory(vehicleCategory) {
     try {
-        const vehicles = await Vehicle.find({ type: vehicleType });
+        const vehicles = await Vehicle.find({ category: vehicleCategory });
 
         if (vehicles.length === 0) {
             return res.status(404).json({ message: 'No vehicles found for the specified type' });
         }
 
-        return vehicles[0];
+        return vehicles;
     } catch (error) {
         // Handle any errors that occur during the query
         console.error('Error finding vehicles:', error);
@@ -67,11 +71,10 @@ async function findByType(vehicleType) {
 }
 
 async function findCO2Emission(req,res){
-    try{
-
-    const token = process.env.token;
+    try{    
+    const token = process.env.SURE_PASS_TOKEN;
     const options = {method:'POST',
-        url:process.env.url,
+        url:process.env.SURE_PASS_RC_FULL_DETAILS_API,
         headers: {
             'Content-Type': 'application/json',
             'Authorization': token,
@@ -90,13 +93,12 @@ async function findCO2Emission(req,res){
     const vehicleCategory = vehicleInfo.data.vehicle_category;
 
     // get other details for vechileType
-    const otherDetails = await findByType(req.body.VechileType);
-        
-    if(vehicleCategory !== otherDetails.category ){
+    const vechileCategories = await findByVehicleCategory(vehicleCategory);
+    const orderedVechileCategory = orderBy(vechileCategories,'standardLadenWeight','desc');
+    const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= req.body.LoadedWeight);
 
-        throw new Error('Vehicle type not found');
-    }
-
+    const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0]:orderedVechileCategory[orderedVechileCategory.length -1];
+    console.log('otherDetails',otherDetails);
     const distanceString = await getDistance(req.body.SourcePincode,req.body.DestinationPincode);
     console.log('disString',distanceString);
     const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
@@ -114,7 +116,7 @@ async function findCO2Emission(req,res){
         } else {
             co2Emission = distance * otherDetails.co2EPercentageAbove2021*otherDetails.lodedVehicleNomalizationPercentage;
         }
-    }else {
+    } else {
         console.log('below2021',otherDetails.co2EPercentageBelow2021);
 
         if(req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)){
@@ -129,16 +131,16 @@ async function findCO2Emission(req,res){
     if(req.body.MobilisationDistance || req.body.DeMobilisationDistance){
         console.log('extraDistance',(req.body.MobilisationDistance + req.body.DeMobilisationDistance));
         if(year >= 2021){
-            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021* otherDetails.emptyVehicleNomalizationPercentage;
+            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * nearestVechileCategory.co2EPercentageAbove2021* nearestVechileCategory.emptyVehicleNomalizationPercentage;
         }
         else{
-            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021* otherDetails.emptyVehicleNomalizationPercentage;
+            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * nearestVechileCategory.co2EPercentageBelow2021* nearestVechileCategory.emptyVehicleNomalizationPercentage;
         }
     }
 
     console.log('overallEmission',co2Emission);
 
-    return res.status(202).json(co2Emission);
+    return res.status(202).json(round(co2Emission,3));
 } catch(error){
     console.log('error is : ',error)
     return res.status(500).json("vechile not found");
@@ -147,6 +149,6 @@ async function findCO2Emission(req,res){
 }
 
 module.exports = {
-    findCO2Emission,getDistance,findByType,getDistance,insert
+    findCO2Emission,findByVehicleCategory
 };
 
