@@ -9,7 +9,7 @@ const sendOtp = async (req,res) => {
         const otp = otpGenerator.generate(4,{upperCaseAlphabets:false,lowerCaseAlphabets:false,specialChars:false});
 
         const cDate = new Date();
-        const mobileNumber = req.query.mobileNumber;
+        const mobileNumber = req.body.mobileNumber;
 
         await otpModel.findOneAndUpdate({mobileNumber},
             {otp,otpExpiration: new Date(cDate.getTime())},
@@ -25,7 +25,7 @@ const sendOtp = async (req,res) => {
                 numbers: mobileNumber
             }
         });
-            
+          console.log('sent otp')  
         return res.status(201).json('OTP sent successfully!');        
     } catch (error) {
         console.error('Error sending OTP:', error);
