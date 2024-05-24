@@ -2,7 +2,7 @@ const Vehicle = require('../models/vehicle');
 const { orderBy, round } = require('lodash');
 const axios = require('axios');
 require('dotenv').config();
-const vehicleRcDetails = require('../services/vehicleRCdetails');
+// const vehicleRcDetails = require('../services/vehicleRCdetails');
 // const distanceCalculation = require('../services/distanceCalculation');
 
 async function getDistance(sourcePincode,destinationPincode){
