@@ -34,9 +34,10 @@ const sendOtp = async (req,res) => {
 }
 
 const verifyOtp = async (req,res) => {
-    try{     
-       const existingOtp =  await otpModel.findOne({mobileNumber:req.body.mobileNumber});
+    try{ 
        
+       const existingOtp =  await otpModel.findOne({mobileNumber:req.body.mobileNumber});
+       console.log('existingOtpDetails',existingOtp);
        if(!existingOtp.otp){
         throw new Error('Otp does not exists');
        }
@@ -44,11 +45,11 @@ const verifyOtp = async (req,res) => {
     // otp expiration time is 5 minutes
        const cDate = new Date();
 
-       if(new Date().getTime() > (existingOtp.otpExpiration + 300000)){
+       if(cDate.getTime() > (existingOtp.otpExpiration + 300000)){
         throw new Error('Otp expired');
        }
-
-       if(existingOtp.otp !== req.body.otp){
+       
+       if(existingOtp.otp != req.body.otp){
         throw new Error('Invalid otp')
        }
 
