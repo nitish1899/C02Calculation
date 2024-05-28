@@ -127,14 +127,16 @@ async function findCO2Emission(req,res){
         }
     }
 
+    const mobilisationDistance = Number(req.body.MobilisationDistance);
+    const deMobilisationDistance = Number(req.body.DeMobilisationDistance);
 
-    if(req.body.MobilisationDistance || req.body.DeMobilisationDistance){
-        console.log('extraDistance',(req.body.MobilisationDistance + req.body.DeMobilisationDistance));
+    if(mobilisationDistance || deMobilisationDistance){
+        console.log('extraDistance',(mobilisationDistance + deMobilisationDistance));
         if(year >= 2021){
-            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * nearestVechileCategory.co2EPercentageAbove2021* nearestVechileCategory.emptyVehicleNomalizationPercentage;
+            co2Emission = co2Emission + (mobilisationDistance + deMobilisationDistance) * otherDetails.co2EPercentageAbove2021* otherDetails.emptyVehicleNomalizationPercentage;
         }
         else{
-            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * nearestVechileCategory.co2EPercentageBelow2021* nearestVechileCategory.emptyVehicleNomalizationPercentage;
+            co2Emission = co2Emission + (mobilisationDistance + deMobilisationDistance) * otherDetails.co2EPercentageBelow2021* otherDetails.emptyVehicleNomalizationPercentage;
         }
     }
 
