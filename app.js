@@ -3,10 +3,6 @@ const app = express();
 const http = require('http').Server(app);
 const cors = require('cors');
 require('dotenv').config();
-// const admin = require('firebase-admin');
-// const credentials = require('./firebase-adminsdk.json');
-
-// admin.initializeApp({credential:admin.credential.cert(credentials)});
 
 const corsOptions = {
     origin: '*',
