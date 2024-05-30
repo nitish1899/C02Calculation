@@ -85,8 +85,18 @@ async function findCO2Emission(req,res){
     };
     
     // get vechileInfo using vehicle number
+    try{
+
+    } catch (error){
+
+    }
     const vehicleInfo = (await axios.request(options)).data;
-    console.log(vehicleInfo)
+    console.log('vehicleInfo',vehicleInfo)
+   
+    if(!vehicleInfo) {
+        throw new Error('Vehicle not found');
+    }
+
     const dateString = vehicleInfo.data.registration_date;
     const date = new Date(dateString);
     const year = date.getFullYear();
@@ -95,6 +105,7 @@ async function findCO2Emission(req,res){
     // get other details for vechileType
     const vechileCategories = await findByVehicleCategory(vehicleCategory);
     const orderedVechileCategory = orderBy(vechileCategories,'standardLadenWeight','desc');
+    
     const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= req.body.LoadedWeight);
 
     const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0]:orderedVechileCategory[orderedVechileCategory.length -1];
@@ -142,10 +153,10 @@ async function findCO2Emission(req,res){
 
     console.log('overallEmission',co2Emission);
 
-    return res.status(202).json(round(co2Emission,3));
+    return res.status(201).json(round(co2Emission,3));
 } catch(error){
     console.log('error is : ',error)
-    return res.status(500).json("vechile not found");
+    return res.status(400).json(error);
 }
 
 }
