@@ -2,8 +2,6 @@ const Vehicle = require('../models/vehicle');
 const { orderBy, round } = require('lodash');
 const axios = require('axios');
 require('dotenv').config();
-// const vehicleRcDetails = require('../services/vehicleRCdetails');
-// const distanceCalculation = require('../services/distanceCalculation');
 
 async function getDistance(sourcePincode,destinationPincode){
     try {
@@ -18,9 +16,13 @@ async function getDistance(sourcePincode,destinationPincode){
           }
       );
   
+      if(!response){
+        throw new Error('Invalid pincode');
+      }
+
       // Extract distance information
-      const distanceInfo = response.data.rows[0].elements[0];
-      const distance = distanceInfo.distance.text;
+      const distanceInfo = response?.data?.rows[0]?.elements[0];
+      const distance = distanceInfo?.distance?.text;
       console.log(distance);
       return distance;
   
@@ -71,7 +73,7 @@ async function findByVehicleCategory(vehicleCategory) {
 }
 
 async function findCO2Emission(req,res){
-    try{    
+    try{   
     const token = process.env.SURE_PASS_TOKEN;
     const options = {method:'POST',
         url:process.env.SURE_PASS_RC_FULL_DETAILS_API,
@@ -85,17 +87,16 @@ async function findCO2Emission(req,res){
     };
     
     // get vechileInfo using vehicle number
-    try{
+    const vehicleData = await axios.request(options);
 
-    } catch (error){
-
+    if(!vehicleData) {
+        return res.status(404).json({error:'Vehicle not found'});
     }
-    const vehicleInfo = (await axios.request(options)).data;
-    console.log('vehicleInfo',vehicleInfo)
+
+    const vehicleInfo = vehicleData.data;
+    // console.log('vehicleInfo',vehicleInfo)
    
-    if(!vehicleInfo) {
-        throw new Error('Vehicle not found');
-    }
+   
 
     const dateString = vehicleInfo.data.registration_date;
     const date = new Date(dateString);
@@ -105,8 +106,8 @@ async function findCO2Emission(req,res){
     // get other details for vechileType
     const vechileCategories = await findByVehicleCategory(vehicleCategory);
     const orderedVechileCategory = orderBy(vechileCategories,'standardLadenWeight','desc');
-    
-    const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= req.body.LoadedWeight);
+    const ladenWeight = vehicleInfo.vehicle_gross_weight - vehicleInfo.unladen_weight;
+    const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
 
     const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0]:orderedVechileCategory[orderedVechileCategory.length -1];
     console.log('otherDetails',otherDetails);
@@ -115,7 +116,7 @@ async function findCO2Emission(req,res){
     const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
 
     if(!distance){
-        throw new Error('Invalid pincode');
+        return res.status(404).json({error:'Invalid pin'});
     }
 
     let co2Emission = 0;
@@ -156,7 +157,7 @@ async function findCO2Emission(req,res){
     return res.status(201).json(round(co2Emission,3));
 } catch(error){
     console.log('error is : ',error)
-    return res.status(400).json(error);
+    return res.status(404).json({error: 'Vehicle not found'});
 }
 
 }
