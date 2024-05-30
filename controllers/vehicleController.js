@@ -94,8 +94,10 @@ async function findCO2Emission(req,res){
 
     // get other details for vechileType
     const vechileCategories = await findByVehicleCategory(vehicleCategory);
+
     const orderedVechileCategory = orderBy(vechileCategories,'standardLadenWeight','desc');
-    const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= req.body.LoadedWeight);
+    const ladenWeight = vehicleInfo.vehicle_gross_weight - vehicleInfo.unladen_weight;
+    const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
 
     const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0]:orderedVechileCategory[orderedVechileCategory.length -1];
     console.log('otherDetails',otherDetails);
@@ -142,10 +144,10 @@ async function findCO2Emission(req,res){
 
     console.log('overallEmission',co2Emission);
 
-    return res.status(202).json(round(co2Emission,3));
+    return res.status(201).json(round(co2Emission,3));
 } catch(error){
     console.log('error is : ',error)
-    return res.status(500).json("vechile not found");
+    return res.status(400).json("vechile not found");
 }
 
 }
