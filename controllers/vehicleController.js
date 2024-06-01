@@ -109,18 +109,18 @@ async function findCO2Emission(req,res){
     if(year >= 2021){
         console.log('above2021',otherDetails.co2EPercentageAbove2021);
         if(req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)){
-            co2Emission = distance * otherDetails.co2EPercentageAbove2021;
+            co2Emission = distance * otherDetails.co2EPercentageAbove2021/100;
         } else {
-            co2Emission = distance * otherDetails.co2EPercentageAbove2021*otherDetails.lodedVehicleNomalizationPercentage;
+            co2Emission = distance * otherDetails.co2EPercentageAbove2021/100*otherDetails.lodedVehicleNomalizationPercentage/100;
         }
     }else {
         console.log('below2021',otherDetails.co2EPercentageBelow2021);
 
         if(req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)){
-            co2Emission = distance * otherDetails.co2EPercentageBelow2021;
+            co2Emission = distance * otherDetails.co2EPercentageBelow2021/100;
         } else {
             console.log(otherDetails)
-            co2Emission = distance * otherDetails.co2EPercentageBelow2021*otherDetails.lodedVehicleNomalizationPercentage;
+            co2Emission = distance * otherDetails.co2EPercentageBelow2021/100*otherDetails.lodedVehicleNomalizationPercentage/100;
         }
     }
 
@@ -128,10 +128,10 @@ async function findCO2Emission(req,res){
     if(req.body.MobilisationDistance || req.body.DeMobilisationDistance){
         console.log('extraDistance',(req.body.MobilisationDistance + req.body.DeMobilisationDistance));
         if(year >= 2021){
-            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021* otherDetails.emptyVehicleNomalizationPercentage;
+            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021/100* otherDetails.emptyVehicleNomalizationPercentage/100;
         }
         else{
-            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021* otherDetails.emptyVehicleNomalizationPercentage;
+            co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021/100* otherDetails.emptyVehicleNomalizationPercentage/100;
         }
     }
 
