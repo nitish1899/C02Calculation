@@ -1,9 +1,17 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-userName:String,
-mobileNumber:String,
-pin:Number,
-})
+  userName:{
+      type: String,
+      required: true
+    },
+  mobileNumber:{
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+  pin:{type:String,required:true},
+  });
 
 module.exports = mongoose.model('User',userSchema);
