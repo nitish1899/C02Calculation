@@ -3,16 +3,18 @@ const app = express();
 const http = require('http').Server(app);
 const cors = require('cors');
 require('dotenv').config();
+const { connectDB } = require('./config/database')
 
 const corsOptions = {
-    origin: '*',
-    credentials:true
-  };
-  
+  origin: '*',
+  credentials: true
+};
+
 app.use(cors(corsOptions));
-  
-const mongoose = require('mongoose');
-mongoose.connect("mongodb+srv://nkword1899:TP8SH1EJk6I45PnT@co2emissioncalculation.mq4im1l.mongodb.net/?retryWrites=true&w=majority&appName=CO2EmissionCalculation");
+
+// const mongoose = require('mongoose');
+// mongoose.connect("mongodb+srv://nkword1899:TP8SH1EJk6I45PnT@co2emissioncalculation.mq4im1l.mongodb.net/?retryWrites=true&w=majority&appName=CO2EmissionCalculation");
+connectDB();
 
 const authRoutes = require('./routes/auth');
 const otpRoutes = require('./routes/otp');
@@ -25,6 +27,6 @@ app.use('/api', vehicleRoutes);
 app.use('/api/otp', otpRoutes);
 
 
-http.listen(3000, function(){
-    console.log('Server is running');
+http.listen(3000, function () {
+  console.log('Server is running');
 })
