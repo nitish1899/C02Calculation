@@ -4,16 +4,16 @@ const axios = require('axios');
 // const sendOtpToMobileNumber = require('../services/fastToSms');
 require('dotenv').config();
 
-const sendOtp = async (req,res) => {
-    try{
-        const otp = otpGenerator.generate(4,{upperCaseAlphabets:false,lowerCaseAlphabets:false,specialChars:false});
+const sendOtp = async (req, res) => {
+    try {
+        const otp = otpGenerator.generate(4, { upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false });
 
         const cDate = new Date();
         const mobileNumber = req.body.mobileNumber;
 
-        await otpModel.findOneAndUpdate({mobileNumber},
-            {otp,otpExpiration: new Date(cDate.getTime())},
-            {upsert:true,new:true,setDefaultsOnInsert:true}
+        await otpModel.findOneAndUpdate({ mobileNumber },
+            { otp, otpExpiration: new Date(cDate.getTime()) },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
         // sent otp on mobile number
@@ -25,41 +25,41 @@ const sendOtp = async (req,res) => {
                 numbers: mobileNumber
             }
         });
-          console.log('sent otp')  
-        return res.status(201).json('OTP sent successfully!');        
+        console.log('sent otp')
+        return res.status(201).json('OTP sent successfully!');
     } catch (error) {
         console.error('Error sending OTP:', error);
         res.status(500).json({ success: false, message: 'Failed to send OTP.' });
     }
 }
 
-const verifyOtp = async (req,res) => {
-    try{ 
-       
-       const existingOtp =  await otpModel.findOne({mobileNumber:req.body.mobileNumber});
-       console.log('existingOtpDetails',existingOtp);
-       if(!existingOtp.otp){
-        throw new Error('Otp does not exists');
-       }
+const verifyOtp = async (req, res) => {
+    try {
 
-    // otp expiration time is 5 minutes
-       const cDate = new Date();
+        const existingOtp = await otpModel.findOne({ mobileNumber: req.body.mobileNumber });
+        console.log('existingOtpDetails', existingOtp);
+        if (!existingOtp.otp) {
+            throw new Error('Otp does not exists');
+        }
 
-       if(cDate.getTime() > (existingOtp.otpExpiration + 300000)){
-        throw new Error('Otp expired');
-       }
-       
-       if(existingOtp.otp != req.body.otp){
-        throw new Error('Invalid otp')
-       }
+        // otp expiration time is 5 minutes
+        const cDate = new Date();
 
-        return res.status(201).json({success:true})
-    } catch(error){
+        if (cDate.getTime() > (existingOtp.otpExpiration + 300000)) {
+            throw new Error('Otp expired');
+        }
+
+        if (existingOtp.otp != req.body.otp) {
+            throw new Error('Invalid otp')
+        }
+
+        return res.status(201).json({ success: true })
+    } catch (error) {
         return res.status(400).json({
-            success:false,
-            message:error?.message
+            success: false,
+            message: error?.message
         })
     }
 }
 
-module.exports = {sendOtp,verifyOtp};
+module.exports = { sendOtp, verifyOtp };

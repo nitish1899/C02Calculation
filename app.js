@@ -12,8 +12,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// const mongoose = require('mongoose');
-// mongoose.connect("mongodb+srv://nkword1899:TP8SH1EJk6I45PnT@co2emissioncalculation.mq4im1l.mongodb.net/?retryWrites=true&w=majority&appName=CO2EmissionCalculation");
 connectDB();
 
 const authRoutes = require('./routes/auth');
@@ -22,6 +20,7 @@ const vehicleRoutes = require('./routes/vehicle');
 
 app.use(express.json()); // for parsing application/json
 
+app.use('/', (req, res) => res.json({ 'message': 'Welcome to CO2e Calculator' }));
 app.use('/api/auth', authRoutes);
 app.use('/api', vehicleRoutes);
 app.use('/api/otp', otpRoutes);
