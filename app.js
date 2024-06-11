@@ -20,10 +20,12 @@ const vehicleRoutes = require('./routes/vehicle');
 
 app.use(express.json()); // for parsing application/json
 
-app.use('/', (req, res) => res.json({ 'message': 'Welcome to CO2e Calculator' }));
 app.use('/api/auth', authRoutes);
 app.use('/api', vehicleRoutes);
 app.use('/api/otp', otpRoutes);
+
+
+app.use('/', (req, res) => res.json({ 'message': 'Welcome to CO2e Calculator' }));
 
 
 http.listen(3000, function () {
