@@ -11,6 +11,9 @@ jobs:
   explore_github_actions:
     runs-on: ubuntu-latest
 
+    outputs:
+      docker_version: ${{steps.soft_versions.outputs.installed_docker_version}}
+    
     steps:
       - run: echo "Username is ${{github.actor}}"
 
@@ -22,11 +25,13 @@ jobs:
       - run: echo "Event ${{github.event_name}} triggered the workflow"
 
       - name: Runner comes with preinstalled software
+        id: soft_versions
         run: |
           echo "Display software versions"
           git -v
           docker -v
           node -v
+          echo "installed_docker_version=$(docker -v)" >> $GITHUB_OUTPUT
 
       - name: List file in the repository pre checkout
         run: ls ${{ github.workspace }}
@@ -38,9 +43,16 @@ jobs:
 
   display_info:
     runs-on: ubuntu-latest
+
+    needs: explore_github_actions
         
     steps:
-      - run: echo "${{github.event.inputs.environment_name}}"     
+      - name: display requred job output
+        env:
+          GIVEN_DOCKER_VER: ${{needs.explore_github_actions.outputs.docker_version}}
+        run: echo "given docker is $GIVEN_DOCKER_VER"
+
+      - run: echo "${{github.event.inputs.environment_name}}"  
       
       - name: output workflow execution summary
         run: |
