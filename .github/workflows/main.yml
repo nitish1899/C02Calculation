@@ -22,3 +22,11 @@ jobs:
           git -v
           docker -v
           node -v
+
+      - name: List file in the repository pre checkout
+        run: ls ${{ github.workspace }}
+
+      - uses: actions/checkout@v4 
+
+      - name: List file in the repository after checkout
+        run: ls ${{ github.workspace }}
