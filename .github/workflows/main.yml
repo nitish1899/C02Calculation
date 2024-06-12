@@ -1,6 +1,11 @@
 name: co2ecalculator
 
-on: [workflow_dispatch]
+on: 
+  workflow_dispatch:
+    inputs:
+      environment_name:
+        description: environment name
+        required: true
 
 jobs:
   explore_github_actions:
