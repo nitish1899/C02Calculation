@@ -174,18 +174,18 @@ async function findCO2Emission(req, res) {
         }
 
         await InputHistory.create({
-            vehicleNumber: req.body.VehicleNumber,
-            sourcePincode: req.body.SourcePincode,
-            destinationPincode: req.body.DestinationPincode,
-            lodedWeight: req.body.LoadedWeight,
-            mobilizationDistance: req.body.mobilisationDistance,
-            deMobilizationDistance: req.body.deMobilisationDistance,
+            vehicleNumber,
+            sourcePincode: SourcePincode,
+            destinationPincode: DestinationPincode,
+            lodedWeight: LoadedWeight,
+            mobilizationDistance: mobilisationDistance,
+            deMobilizationDistance: deMobilisationDistance,
             _user: user,
         })
 
         console.log('overallEmission', co2Emission);
 
-        return res.status(201).json(round(co2Emission, 3));
+        return res.status(201).json({ co2Emission: round(co2Emission, 3), vehicleNumber, dateOfIssue: new Date() });
     } catch (error) {
         console.log('error is : ', error.message)
         return res.status(404).json({ error: error.message });
