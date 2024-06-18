@@ -3,8 +3,15 @@ const InputHistory = require('../models/inputHistory');
 const User = require("../models/user");
 const { orderBy, round } = require('lodash');
 const axios = require('axios');
-const { freeTrailCount } = require('../constants');
+const { freeTrailCount, monthNames } = require('../constants');
 require('dotenv').config();
+
+const { v4: uuidv4 } = require('uuid');
+
+function generateUuidNumber() {
+    const uniqueId = uuidv4();
+    return `CERT-${uniqueId}`;
+}
 
 async function getDistance(sourcePincode, destinationPincode) {
     try {
@@ -88,8 +95,12 @@ async function findCO2Emission(req, res) {
         const vehicleNumber = VechileNumber.toUpperCase();
 
         // Validate vehicle number
-        if (!/^[a-zA-Z0-9]+$/.test(vehicleNumber)) {
+        if (!/^[a-zA-Z0-9]+$/.test(vehicleNumber) || vehicleNumber.length > 10) {
             return res.status(400).json({ error: 'Invalid vehicle number. Only alphanumeric characters are allowed.' });
+        }
+
+        if (!Number(SourcePincode) || Number(SourcePincode).length != 6 || !Number(DestinationPincode) || Number(DestinationPincode).length != 6) {
+            throw new Error('Invalid source or destination pincode');
         }
 
         const options = {
@@ -106,7 +117,7 @@ async function findCO2Emission(req, res) {
 
         // get vechileInfo using vehicle number
         const vehicleData = await axios.request(options);
-
+        console.log('vehicleData', vehicleData);
         if (!vehicleData) {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
@@ -117,6 +128,7 @@ async function findCO2Emission(req, res) {
         const date = new Date(dateString);
         const year = date.getFullYear();
         const vehicleCategory = vehicleInfo.data.vehicle_category;
+        const vehicleOwner = vehicleInfo.data.owner_name;
 
         // get other details for vechileType
         const vechileCategories = await findByVehicleCategory(vehicleCategory);
@@ -184,13 +196,18 @@ async function findCO2Emission(req, res) {
         })
 
         console.log('overallEmission', co2Emission);
+        let currentDate = new Date();
 
-        return res.status(201).json({ co2Emission: round(co2Emission, 3), vehicleNumber, dateOfIssue: new Date() });
+        let month = monthNames[currentDate.getMonth()];
+
+        // Formulate the desired date string
+        const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+
+        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleOwner, vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber() });
     } catch (error) {
         console.log('error is : ', error.message)
-        return res.status(404).json({ error: error.message });
+        return res.status(404).json({ error: error });
     }
-
 }
 
 module.exports = {
