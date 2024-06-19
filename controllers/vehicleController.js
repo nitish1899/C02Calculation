@@ -2,7 +2,6 @@ const Vehicle = require('../models/vehicle');
 const { orderBy, round } = require('lodash');
 const axios = require('axios');
 require('dotenv').config();
-
 async function getDistance(sourcePincode, destinationPincode) {
     try {
         const response = await axios.get(
@@ -19,7 +18,6 @@ async function getDistance(sourcePincode, destinationPincode) {
         if (!response) {
             throw new Error('Invalid pincode');
         }
-
         // Extract distance information
         const distanceInfo = response?.data?.rows[0]?.elements[0];
         const distance = distanceInfo?.distance?.text;
@@ -32,7 +30,6 @@ async function getDistance(sourcePincode, destinationPincode) {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
-
 /*
 async function insert(req, res) {
     try {
@@ -46,7 +43,6 @@ async function insert(req, res) {
             lodedVehicleNomalizationPercentage: req.body.lodedVehicleNomalizationPercentage,
             emptyVehicleNomalizationPercentage: req.body.emptyVehicleNomalizationPercentage,
         });
-
         // Send the created vehicle record as a response
         return res.status(201).json(vehicleInfo);
     } catch (error) {
@@ -56,15 +52,12 @@ async function insert(req, res) {
     }
 }
 */
-
 async function findByVehicleCategory(vehicleCategory) {
     try {
         const vehicles = await Vehicle.find({ category: vehicleCategory });
-
         if (vehicles.length === 0) {
             return res.status(404).json({ message: 'No vehicles found for the specified type' });
         }
-
         return vehicles;
     } catch (error) {
         // Handle any errors that occur during the query
@@ -72,130 +65,82 @@ async function findByVehicleCategory(vehicleCategory) {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
-
 async function findCO2Emission(req, res) {
     try {
-        const { VechileNumber, SourcePincode, DestinationPincode, MobilisationDistance, DeMobilisationDistance, LoadedWeight, userId } = req.body;
-        /*
-        const user = await User.findOne({ _id: userId });
-
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        const vehicleNumber = VechileNumber.toUpperCase();
-
-        // Validate vehicle number
-        if (!/^[a-zA-Z0-9]+$/.test(vehicleNumber)) {
-            return res.status(400).json({ error: 'Invalid vehicle number. Only alphanumeric characters are allowed.' });
-        }
-
+        const token = process.env.SURE_PASS_TOKEN;
         const options = {
             method: 'POST',
             url: process.env.SURE_PASS_RC_FULL_DETAILS_API,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.SURE_PASS_TOKEN}`,
+                'Authorization': token,
             },
             data: {
-                id_number: vehicleNumber,
+                id_number: req.body.VechileNumber,
             }
         };
 
         // get vechileInfo using vehicle number
         const vehicleData = await axios.request(options);
-        console.log('vehicleData', vehicleData);
         if (!vehicleData) {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
-
         const vehicleInfo = vehicleData.data;
         // console.log('vehicleInfo',vehicleInfo)
+
+
         const dateString = vehicleInfo.data.registration_date;
         const date = new Date(dateString);
         const year = date.getFullYear();
         const vehicleCategory = vehicleInfo.data.vehicle_category;
-        const vehicleOwner = vehicleInfo.data.owner_name;
-
         // get other details for vechileType
         const vechileCategories = await findByVehicleCategory(vehicleCategory);
         const orderedVechileCategory = orderBy(vechileCategories, 'standardLadenWeight', 'desc');
         const ladenWeight = vehicleInfo.vehicle_gross_weight - vehicleInfo.unladen_weight;
         const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
-
         const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
-        // console.log('otherDetails', otherDetails);
-        const distanceString = await getDistance(SourcePincode, DestinationPincode);
-        // console.log('disString', distanceString);
+        console.log('otherDetails', otherDetails);
+        const distanceString = await getDistance(req.body.SourcePincode, req.body.DestinationPincode);
+        console.log('disString', distanceString);
         const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
-
         if (!distance) {
             return res.status(404).json({ error: 'Invalid pin' });
         }
-
         let co2Emission = 0;
-
         if (year >= 2021) {
             console.log('above2021', otherDetails.co2EPercentageAbove2021);
-            if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+            if (req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)) {
                 co2Emission = distance * otherDetails.co2EPercentageAbove2021;
             } else {
                 co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
             }
         } else {
             console.log('below2021', otherDetails.co2EPercentageBelow2021);
-
-            if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+            if (req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)) {
                 co2Emission = distance * otherDetails.co2EPercentageBelow2021;
             } else {
                 console.log(otherDetails)
                 co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
             }
         }
-
-        const mobilisationDistance = Number(MobilisationDistance);
-        const deMobilisationDistance = Number(DeMobilisationDistance);
-
+        const mobilisationDistance = Number(req.body.MobilisationDistance);
+        const deMobilisationDistance = Number(req.body.DeMobilisationDistance);
         if (mobilisationDistance || deMobilisationDistance) {
             console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
             if (year >= 2021) {
-                co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+                co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
             }
             else {
-                co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+                co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
             }
         }
-
-        const count = await InputHistory.countDocuments({ _user: userId });
-
-        if (count > freeTrailCount) {
-            throw new Error('You have exceeded your free trial limit.');
-        }
-
-        await InputHistory.create({
-            vehicleNumber,
-            sourcePincode: SourcePincode,
-            destinationPincode: DestinationPincode,
-            lodedWeight: LoadedWeight,
-            mobilizationDistance: mobilisationDistance,
-            deMobilizationDistance: deMobilisationDistance,
-            _user: user,
-        })
-
         console.log('overallEmission', co2Emission);
-        const certificateIssueDate = new Date().getDate() + '-' + (new Date().getMonth() + 1) + '-' + new Date().getFullYear();
-        */
-
-        // return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleOwner, vehicleNumber, certificateIssueDate });
-        return res.status(201).json({ co2Emission: 22, vehicleOwner: "asdf", vehicleNumber: "BR01gb5618", certificateIssueDate: '18-06-2024', certificateNumber: 2345 });
-
+        return res.status(201).json(round(co2Emission, 3));
     } catch (error) {
-        console.log('error is : ', error.message)
-        return res.status(404).json({ error: error });
+        console.log('error is : ', error)
+        return res.status(404).json({ error: 'Vehicle not found' });
     }
 }
-
 module.exports = {
     findCO2Emission, findByVehicleCategory
 };
-
