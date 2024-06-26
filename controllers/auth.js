@@ -68,14 +68,14 @@ async function login(req, res) {
         statusbar: "400 Bad Request",
       });
 
-    const token = jwt.sign(
-      {
-        mobileNumber: existingUser.mobileNumber,
-        id: existingUser._id,
-      },
-      process.env.TOKEN_SECRET,
-      { expiresIn: "1d" }
-    );
+    // const token = jwt.sign(
+    //   {
+    //     mobileNumber: existingUser.mobileNumber,
+    //     id: existingUser._id,
+    //   },
+    //   process.env.TOKEN_SECRET,
+    //   { expiresIn: "1d" }
+    // );
 
     res.status(200).json({
       status: "success",
@@ -84,7 +84,7 @@ async function login(req, res) {
         userName: existingUser.userName,
         mobileNumber: existingUser.mobileNumber,
         // image:existingUser.image,
-        token: token,
+        // token: token,
       },
     })
   } catch (error) {

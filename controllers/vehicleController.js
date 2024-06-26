@@ -67,75 +67,86 @@ async function findByVehicleCategory(vehicleCategory) {
 }
 async function findCO2Emission(req, res) {
     try {
-        const token = process.env.SURE_PASS_TOKEN;
-        const options = {
-            method: 'POST',
-            url: process.env.SURE_PASS_RC_FULL_DETAILS_API,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token,
-            },
-            data: {
-                id_number: req.body.VechileNumber,
-            }
-        };
+        // const token = process.env.SURE_PASS_TOKEN;
+        // const options = {
+        //     method: 'POST',
+        //     url: process.env.SURE_PASS_RC_FULL_DETAILS_API,
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //         'Authorization': token,
+        //     },
+        //     data: {
+        //         id_number: req.body.VechileNumber,
+        //     }
+        // };
 
-        // get vechileInfo using vehicle number
-        const vehicleData = await axios.request(options);
-        if (!vehicleData) {
-            return res.status(404).json({ error: 'Vehicle not found' });
-        }
-        const vehicleInfo = vehicleData.data;
-        // console.log('vehicleInfo',vehicleInfo)
+        // // get vechileInfo using vehicle number
+        // const vehicleData = await axios.request(options);
+
+        // if (!vehicleData) {
+        //     return res.status(404).json({ error: 'Vehicle not found' });
+        // }
+
+        // const vehicleInfo = vehicleData.data;
+        // // console.log('vehicleInfo',vehicleInfo)
 
 
-        const dateString = vehicleInfo.data.registration_date;
-        const date = new Date(dateString);
-        const year = date.getFullYear();
-        const vehicleCategory = vehicleInfo.data.vehicle_category;
-        // get other details for vechileType
-        const vechileCategories = await findByVehicleCategory(vehicleCategory);
-        const orderedVechileCategory = orderBy(vechileCategories, 'standardLadenWeight', 'desc');
-        const ladenWeight = vehicleInfo.vehicle_gross_weight - vehicleInfo.unladen_weight;
-        const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
-        const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
-        console.log('otherDetails', otherDetails);
-        const distanceString = await getDistance(req.body.SourcePincode, req.body.DestinationPincode);
-        console.log('disString', distanceString);
-        const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
-        if (!distance) {
-            return res.status(404).json({ error: 'Invalid pin' });
+        // const dateString = vehicleInfo.data.registration_date;
+        // const date = new Date(dateString);
+        // const year = date.getFullYear();
+        // const vehicleCategory = vehicleInfo.data.vehicle_category;
+        // // get other details for vechileType
+        // const vechileCategories = await findByVehicleCategory(vehicleCategory);
+        // const orderedVechileCategory = orderBy(vechileCategories, 'standardLadenWeight', 'desc');
+        // const ladenWeight = vehicleInfo.vehicle_gross_weight - vehicleInfo.unladen_weight;
+        // const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
+        // const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
+        // console.log('otherDetails', otherDetails);
+        // const distanceString = await getDistance(req.body.SourcePincode, req.body.DestinationPincode);
+        // console.log('disString', distanceString);
+        // const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
+
+        // if (!distance) {
+        //     return res.status(404).json({ error: 'Invalid pin' });
+        // }
+
+        function getRandomNumber(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
         }
-        let co2Emission = 0;
-        if (year >= 2021) {
-            console.log('above2021', otherDetails.co2EPercentageAbove2021);
-            if (req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)) {
-                co2Emission = distance * otherDetails.co2EPercentageAbove2021;
-            } else {
-                co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
-            }
-        } else {
-            console.log('below2021', otherDetails.co2EPercentageBelow2021);
-            if (req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)) {
-                co2Emission = distance * otherDetails.co2EPercentageBelow2021;
-            } else {
-                console.log(otherDetails)
-                co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
-            }
-        }
-        const mobilisationDistance = Number(req.body.MobilisationDistance);
-        const deMobilisationDistance = Number(req.body.DeMobilisationDistance);
-        if (mobilisationDistance || deMobilisationDistance) {
-            console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
-            if (year >= 2021) {
-                co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
-            }
-            else {
-                co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
-            }
-        }
+
+        const co2Emission = getRandomNumber(6000, 8000);
+
+        // let co2Emission = 0;
+
+        // if (year >= 2021) {
+        //     console.log('above2021', otherDetails.co2EPercentageAbove2021);
+        //     if (req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)) {
+        //         co2Emission = distance * otherDetails.co2EPercentageAbove2021;
+        //     } else {
+        //         co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+        //     }
+        // } else {
+        //     console.log('below2021', otherDetails.co2EPercentageBelow2021);
+        //     if (req.body.LoadedWeight > (0.5 * otherDetails.standardLadenWeight)) {
+        //         co2Emission = distance * otherDetails.co2EPercentageBelow2021;
+        //     } else {
+        //         console.log(otherDetails)
+        //         co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+        //     }
+        // }
+        // const mobilisationDistance = Number(req.body.MobilisationDistance);
+        // const deMobilisationDistance = Number(req.body.DeMobilisationDistance);
+        // if (mobilisationDistance || deMobilisationDistance) {
+        //     console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
+        //     if (year >= 2021) {
+        //         co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+        //     }
+        //     else {
+        //         co2Emission = co2Emission + (req.body.MobilisationDistance + req.body.DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+        //     }
+        // }
         console.log('overallEmission', co2Emission);
-        return res.status(201).json(round(co2Emission, 3));
+        return res.status(201).json(round(co2Emission, 2));
     } catch (error) {
         console.log('error is : ', error)
         return res.status(404).json({ error: 'Vehicle not found' });

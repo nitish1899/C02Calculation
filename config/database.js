@@ -9,7 +9,12 @@ module.exports = {
             return this.connection;
         }
 
-        return await mongoose.connect(CONFIG.DB)
+        const options = {
+            maxPoolSize: 10, // Maximum number of connections in the pool
+            minPoolSize: 5   // Minimum number of connections in the pool
+        };
+
+        return await mongoose.connect(CONFIG.DB, options)
             .then((connection) => {
                 this.connection = connection;
                 console.log('connection successful');
