@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 async function register(req, res) {
-  console.log('req.body', req.body);
+  // console.log('req.body', req.body);
   try {
     const { userName, mobileNumber, pin } = req.body;
 
@@ -53,28 +53,29 @@ async function login(req, res) {
   try {
     const { mobileNumber, pin } = req.body;
     const existingUser = await User.findOne({ mobileNumber });
-    console.log('existingUser', existingUser)
+    // console.log('existingUser', existingUser)
     if (!existingUser) {
       // user is not registered yet need to register yourself.
       return res.status(404).json({ msg: "User does not exist." });
     }
 
+    // console.log(' existingUser.pin', existingUser.pin)
     const isPinCorrect = await bcrypt.compare(pin.toString(), existingUser.pin);
-    console.log('isPinCorrect', isPinCorrect)
+    // console.log('isPinCorrect', isPinCorrect)
     if (!isPinCorrect)
       return res.status(400).json({
         msg: "Invalid Credentials",
         statusbar: "400 Bad Request",
       });
 
-    const token = jwt.sign(
-      {
-        mobileNumber: existingUser.mobileNumber,
-        id: existingUser._id,
-      },
-      process.env.TOKEN_SECRET,
-      { expiresIn: "1d" }
-    );
+    // const token = jwt.sign(
+    //   {
+    //     mobileNumber: existingUser.mobileNumber,
+    //     id: existingUser._id,
+    //   },
+    //   process.env.TOKEN_SECRET,
+    //   { expiresIn: "1d" }
+    // );
 
     res.status(200).json({
       status: "success",
@@ -83,11 +84,11 @@ async function login(req, res) {
         userName: existingUser.userName,
         mobileNumber: existingUser.mobileNumber,
         // image:existingUser.image,
-        token: token,
+        // token: token,
       },
     })
   } catch (error) {
-    console.log("Internal server error", error)
+    // console.log("Internal server error", error)
 
     res.status(500).json({
       status: "failed",

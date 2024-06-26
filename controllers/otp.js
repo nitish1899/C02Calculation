@@ -1,6 +1,7 @@
 const otpGenerator = require('otp-generator');
 const otpModel = require('../models/otp');
 const axios = require('axios');
+// const twilio = require('twilio');
 // const sendOtpToMobileNumber = require('../services/fastToSms');
 require('dotenv').config();
 
@@ -16,6 +17,18 @@ const sendOtp = async (req, res) => {
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
+        // const accountSid = process.env.ACCOUNT_SID;
+        // const authToken = process.env.AUTH_TOKEN;
+        // const client = twilio(accountSid, authToken);
+
+        // const message = await client.messages.create({
+        //     body: `${otp}`,
+        //     from: "+15515254882",
+        //     to: `+91${req.body.mobileNumber}`,
+        // });
+
+        // console.log(message.body);
+
         // sent otp on mobile number
         await axios.get('https://www.fast2sms.com/dev/bulkV2', {
             params: {
@@ -25,11 +38,12 @@ const sendOtp = async (req, res) => {
                 numbers: mobileNumber
             }
         });
-        console.log('sent otp')
+
+        // console.log('sent otp')
         return res.status(201).json('OTP sent successfully!');
     } catch (error) {
         console.error('Error sending OTP:', error);
-        res.status(500).json({ success: false, message: 'Failed to send OTP.' });
+        res.status(400).json({ success: false, message: 'Failed to send OTP.' });
     }
 }
 
