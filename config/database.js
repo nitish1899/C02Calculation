@@ -11,7 +11,8 @@ module.exports = {
 
         const options = {
             maxPoolSize: 10, // Maximum number of connections in the pool
-            minPoolSize: 5   // Minimum number of connections in the pool
+            minPoolSize: 5,   // Minimum number of connections in the pool
+            socketTimeoutMS: 120000
         };
 
         return await mongoose.connect(CONFIG.DB, options)
