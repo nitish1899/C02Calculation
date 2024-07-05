@@ -9,7 +9,7 @@ require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
 
 function generateUuidNumber() {
-    const uniqueId = uuidv4();
+    const uniqueId = uuidv4().split('-')[0]; // Shorten the UUID
     return `CERT-${uniqueId}`;
 }
 
