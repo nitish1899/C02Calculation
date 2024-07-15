@@ -4,6 +4,8 @@ const User = require("../models/user");
 const { orderBy, round } = require('lodash');
 const axios = require('axios');
 const { freeTrailCount, monthNames } = require('../constants');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const xml2js = require('xml2js');
 require('dotenv').config();
 
 const { v4: uuidv4 } = require('uuid');
@@ -62,147 +64,154 @@ async function insert(req, res) {
     }
 }
 */
+
 async function findByVehicleCategory(vehicleCategory) {
     try {
         const vehicles = await Vehicle.find({ category: vehicleCategory });
+
         if (vehicles.length === 0) {
-            return res.status(404).json({ message: 'No vehicles found for the specified type' });
+            throw new Error('No vehicles found for the specified type');
         }
+
         return vehicles;
     } catch (error) {
         // Handle any errors that occur during the query
-        console.error('Error finding vehicles:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        console.error('Error finding vehicles:', error.message);
+        return error.message;
     }
 }
+
+async function parseXmlToJson(xml) {
+    try {
+        const parser = new xml2js.Parser();
+        const vehicleJsonData = (await parser.parseStringPromise(xml))?.VehicleDetails;
+        // console.log('vehicleJsonData', vehicleJsonData);
+        return vehicleJsonData;
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: err.message });
+    }
+}
+
 async function findCO2Emission(req, res) {
     try {
-        // const token = process.env.SURE_PASS_TOKEN;
-        // const options = {
-        //     method: 'POST',
-        //     url: process.env.SURE_PASS_RC_FULL_DETAILS_API,
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Authorization': token,
-        //     },
-        //     data: {
-        //         id_number: req.body.VechileNumber,
-        //     }
-        // };
+        const options = {
+            method: 'POST',
+            url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.ULIP_TOKEN}`,
+            },
+            data: {
+                vehiclenumber: req.body.VechileNumber,
+            },
+        };
 
         const { VechileNumber, SourcePincode, DestinationPincode, MobilisationDistance, DeMobilisationDistance, LoadedWeight, userId } = req.body;
-        // const user = await User.findOne({ _id: userId });
+        const user = await User.findOne({ _id: userId });
 
-        // if (!user) {
-        //     throw new Error('User not found');
-        // }
+        if (!user) {
+            throw new Error('User not found');
+        }
 
         const vehicleNumber = VechileNumber.toUpperCase();
 
-        // // Validate vehicle number
-        // if (!/^[a-zA-Z0-9]+$/.test(vehicleNumber) || vehicleNumber.length > 10) {
-        //     return res.status(400).json({ error: 'Invalid vehicle number. Only alphanumeric characters are allowed.' });
-        // }
+        // Validate vehicle number
+        if (!/^[a-zA-Z0-9]+$/.test(vehicleNumber) || vehicleNumber.length > 10) {
+            return res.status(400).json({ error: 'Invalid vehicle number. Only alphanumeric characters are allowed.' });
+        }
 
-        // if (!Number(SourcePincode) || Number(SourcePincode).length != 6 || !Number(DestinationPincode) || Number(DestinationPincode).length != 6) {
-        //     throw new Error('Invalid source or destination pincode');
-        // }
+        if (!Number(SourcePincode) || SourcePincode.length != 6 || !Number(DestinationPincode) || DestinationPincode.length != 6) {
+            throw new Error('Invalid source or destination pincode');
+        }
 
-        // const options = {
-        //     method: 'POST',
-        //     url: process.env.SURE_PASS_RC_FULL_DETAILS_API,
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Authorization': `Bearer ${process.env.SURE_PASS_TOKEN}`,
-        //     },
-        //     data: {
-        //         id_number: vehicleNumber,
-        //     }
-        // };
-
-        // // get vechileInfo using vehicle number
-        // const vehicleData = await axios.request(options);
-        // console.log('vehicleData', vehicleData);
-        // if (!vehicleData) {
-        //     return res.status(404).json({ error: 'Vehicle not found' });
-        // }
+        // get vechileInfo using vehicle number
+        const vehicleXMLData = (await axios.request(options))?.data?.response?.[0]?.response;
+        // console.log('vehicleData', vehicleXMLData);
+        const vehicleJsonData = (await parseXmlToJson(vehicleXMLData));
+        // console.log('vehicleDataType : ', typeof (vehicleJsonData));
+        // console.log('vehicleData : ', vehicleJsonData);
+        if (!vehicleJsonData) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
 
         // const vehicleInfo = vehicleData.data;
         // // console.log('vehicleInfo',vehicleInfo)
-        // const dateString = vehicleInfo.data.registration_date;
-        // const date = new Date(dateString);
-        // const year = date.getFullYear();
-        // const vehicleCategory = vehicleInfo.data.vehicle_category;
-        // const vehicleOwner = vehicleInfo.data.owner_name;
+        const dateString = vehicleJsonData?.rc_regn_dt?.[0];
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const vehicleCategory = vehicleJsonData?.rc_vch_catg;
+        console.log('vehicleCategory', vehicleCategory);
+        const vehicleOwner = vehicleJsonData?.rc_owner_name?.[0];
 
-        // // get other details for vechileType
-        // const vechileCategories = await findByVehicleCategory(vehicleCategory);
-        // const orderedVechileCategory = orderBy(vechileCategories, 'standardLadenWeight', 'desc');
-        // const ladenWeight = vehicleInfo.vehicle_gross_weight - vehicleInfo.unladen_weight;
-        // const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
+        // get other details for vechileType
+        const vechileCategories = await findByVehicleCategory(vehicleCategory);
+        const orderedVechileCategory = orderBy(vechileCategories, 'standardLadenWeight', 'desc');
+        const ladenWeight = vehicleJsonData?.[0]?.rc_gvw - vehicleJsonData?.[0]?.rc_unld_wt;
+        const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
 
-        // const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
-        // // console.log('otherDetails', otherDetails);
-        // const distanceString = await getDistance(SourcePincode, DestinationPincode);
-        // // console.log('disString', distanceString);
-        // const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
+        const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
+        // console.log('otherDetails', otherDetails);
+        const distanceString = await getDistance(SourcePincode, DestinationPincode);
+        // console.log('disString', distanceString);
+        const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
 
-        // if (!distance) {
-        //     return res.status(404).json({ error: 'Invalid pin' });
-        // }
+        if (!distance) {
+            return res.status(404).json({ error: 'Invalid pin' });
+        }
 
         function getRandomNumber(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        let co2Emission = getRandomNumber(6000, 8000);
+        let co2Emission = 0;
 
-        // if (year >= 2021) {
-        //     console.log('above2021', otherDetails.co2EPercentageAbove2021);
-        //     if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
-        //         co2Emission = distance * otherDetails.co2EPercentageAbove2021;
-        //     } else {
-        //         co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
-        //     }
-        // } else {
-        //     console.log('below2021', otherDetails.co2EPercentageBelow2021);
+        if (year >= 2021) {
+            console.log('above2021', otherDetails.co2EPercentageAbove2021);
+            if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+                co2Emission = distance * otherDetails.co2EPercentageAbove2021;
+            } else {
+                co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+            }
+        } else {
+            console.log('below2021', otherDetails.co2EPercentageBelow2021);
 
-        //     if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
-        //         co2Emission = distance * otherDetails.co2EPercentageBelow2021;
-        //     } else {
-        //         console.log(otherDetails)
-        //         co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
-        //     }
-        // }
+            if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+                co2Emission = distance * otherDetails.co2EPercentageBelow2021;
+            } else {
+                console.log(otherDetails)
+                co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+            }
+        }
 
-        // const mobilisationDistance = Number(MobilisationDistance);
-        // const deMobilisationDistance = Number(DeMobilisationDistance);
+        const mobilisationDistance = MobilisationDistance?.length ? Number(MobilisationDistance) : '';
+        const deMobilisationDistance = DeMobilisationDistance?.length ? Number(DeMobilisationDistance) : '';
 
-        // if (mobilisationDistance || deMobilisationDistance) {
-        //     console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
-        //     if (year >= 2021) {
-        //         co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
-        //     }
-        //     else {
-        //         co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
-        //     }
-        // }
+        if (mobilisationDistance || deMobilisationDistance) {
+            console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
+            if (year >= 2021) {
+                co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+            }
+            else {
+                co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+            }
+        }
 
-        // const count = await InputHistory.countDocuments({ _user: userId });
+        const count = await InputHistory.countDocuments({ _user: userId });
 
         // if (count > freeTrailCount) {
         //     throw new Error('You have exceeded your free trial limit.');
         // }
 
-        // await InputHistory.create({
-        //     vehicleNumber,
-        //     sourcePincode: SourcePincode,
-        //     destinationPincode: DestinationPincode,
-        //     lodedWeight: LoadedWeight,
-        //     mobilizationDistance: mobilisationDistance,
-        //     deMobilizationDistance: deMobilisationDistance,
-        //     _user: user,
-        // })
+        await InputHistory.create({
+            vehicleNumber,
+            sourcePincode: SourcePincode,
+            destinationPincode: DestinationPincode,
+            lodedWeight: LoadedWeight,
+            mobilizationDistance: mobilisationDistance,
+            deMobilizationDistance: deMobilisationDistance,
+            _user: user,
+        })
 
         // console.log('overallEmission', co2Emission);
         let currentDate = new Date();
@@ -212,7 +221,7 @@ async function findCO2Emission(req, res) {
         // // Formulate the desired date string
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
 
-        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleOwner: "", vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber() });
+        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleOwner: user.userName, vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber() });
     } catch (error) {
         console.log('error is : ', error.message)
         return res.status(404).json({ error: error });
