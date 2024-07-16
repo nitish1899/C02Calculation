@@ -136,7 +136,7 @@ app.use('/api/vehicle', vehicleRoutes);
 app.use('/', (req, res) => res.json({ message: 'Welcome to CO2e Calculator' }));
 
 // Schedule a cron job to update the ULIP token every hour
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('*/20 * * * *', async () => {
   try {
     // Function to fetch the new ULIP token
     const newToken = await fetchNewULIPToken();
