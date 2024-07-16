@@ -1,94 +1,3 @@
-// const express = require('express');
-// const app = express();
-// const http = require('http').Server(app);
-// const cors = require('cors');
-// require('dotenv').config();
-// const { connectDB } = require('./config/database');
-// const cron = require('node-cron');
-// const fs = require('fs');
-// const path = require('path');
-// const { createProxyMiddleware } = require('http-proxy-middleware');
-
-// const corsOptions = {
-//   origin: '*',
-//   credentials: true
-// };
-
-// app.use(cors(corsOptions));
-
-// connectDB();
-
-// const authRoutes = require('./routes/auth');
-// const otpRoutes = require('./routes/otp');
-// const vehicleRoutes = require('./routes/vehicle');
-// const { default: axios } = require('axios');
-
-// app.use(express.json()); // for parsing application/json
-
-// const apiProxy = createProxyMiddleware('/api', {
-//   target: 'https://122.160.159.178', // Replace with the actual ULIP API endpoint
-//   changeOrigin: true,
-//   secure: false, // If the API uses HTTPS and you have self-signed certificates, set this to false
-// });
-
-// app.use(apiProxy);
-
-// app.use('/api/auth', authRoutes);
-// app.use('/api', vehicleRoutes);
-// app.use('/api/otp', otpRoutes);
-
-// app.use('/', (req, res) => res.json({ 'message': 'Welcome to CO2e Calculator' }));
-
-// // Schedule a cron job to update the ULIP token every hour
-// cron.schedule('*/1 * * * *', async () => {
-//   try {
-//     // Function to fetch the new ULIP token
-//     const newToken = await fetchNewULIPToken();
-
-//     // Update the .env file with the new ULIP token
-//     const envFilePath = path.resolve(__dirname, '.env');
-//     const envConfig = fs.readFileSync(envFilePath, 'utf8').split('\n');
-//     const updatedEnvConfig = envConfig.map(line => {
-//       if (line.startsWith('ULIP_TOKEN =')) {
-//         return `ULIP_TOKEN = ${newToken}`;
-//       }
-//       return line;
-//     }).join('\n');
-
-//     fs.writeFileSync(envFilePath, updatedEnvConfig, 'utf8');
-//     console.log('ULIP token updated successfully');
-//   } catch (error) {
-//     console.error('Error updating ULIP token:', error);
-//   }
-// });
-
-// // Placeholder function to simulate fetching the new ULIP token
-// async function fetchNewULIPToken() {
-//   const response = await axios.request(
-//     {
-//       method: 'POST',
-//       url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/user/login',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         'Accept': 'application/json'
-//       },
-//       data: {
-//         username: "transvue_usr",
-//         password: "transvue@27022024"
-//       },
-//     }
-//   );
-
-//   // Implement the logic to fetch the new ULIP token from the required source
-//   return `${"'" + response?.data?.response?.id + "'"}`; // Replace this with the actual new token
-// }
-
-
-
-// http.listen(process.env.PORT || 4500, function () {
-//   console.log('Server is running');
-// });
-
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -98,7 +7,6 @@ const { connectDB } = require('./config/database');
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const corsOptions = {
   origin: '*',
@@ -115,19 +23,6 @@ const vehicleRoutes = require('./routes/vehicle');
 const { default: axios } = require('axios');
 
 app.use(express.json()); // for parsing application/json
-
-// Proxy middleware configuration
-const apiProxy = createProxyMiddleware({
-  target: 'https://122.160.159.178:443', // Replace with the actual ULIP API endpoint
-  changeOrigin: true,
-  secure: true, // If the API uses HTTPS and you have self-signed certificates, set this to false
-  pathRewrite: {
-    '^/api': '', // Remove /api from the request path
-  }
-});
-
-// Use the proxy middleware before route definitions
-app.use('/api', apiProxy);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/otp', otpRoutes);
