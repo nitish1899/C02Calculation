@@ -8,6 +8,36 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const xml2js = require('xml2js');
 require('dotenv').config();
 
+let ulipToken = '';
+
+// Placeholder function to simulate fetching the new ULIP token
+async function fetchNewULIPToken() {
+    const response = await axios.post('https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/user/login', {
+        username: process.env.ULIP_USER_NAME,
+        password: process.env.ULIP_PASSWORD
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    });
+
+    // Implement the logic to fetch the new ULIP token from the required source
+    return response?.data?.response?.id; // Replace this with the actual new token
+}
+
+// Schedule a cron job to update the ULIP token every hour
+cron.schedule('*/20 * * * *', async () => {
+    try {
+        // Function to fetch the new ULIP token
+        ulipToken = await fetchNewULIPToken();
+        console.log('ULIP token ', ulipToken);
+        console.log('ULIP token updated successfully');
+    } catch (error) {
+        console.error('Error updating ULIP token:', error);
+    }
+});
+
 const { v4: uuidv4 } = require('uuid');
 
 function generateUuidNumber() {
@@ -100,7 +130,7 @@ async function findCO2Emission(req, res) {
             url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.ULIP_TOKEN}`,
+                'Authorization': `Bearer ${ulipToken}`,
             },
             data: {
                 vehiclenumber: req.body.VechileNumber,
