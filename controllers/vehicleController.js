@@ -7,6 +7,8 @@ const { freeTrailCount, monthNames } = require('../constants');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const xml2js = require('xml2js');
 require('dotenv').config();
+const cron = require('node-cron');
+
 
 let ulipToken = '';
 
@@ -27,12 +29,12 @@ async function fetchNewULIPToken() {
 }
 
 // Schedule a cron job to update the ULIP token every hour
-cron.schedule('*/20 * * * *', async () => {
+cron.schedule('*/1 * * * *', async () => {
     try {
         // Function to fetch the new ULIP token
         ulipToken = await fetchNewULIPToken();
-        console.log('ULIP token ', ulipToken);
-        console.log('ULIP token updated successfully');
+        // console.log('ULIP token ', ulipToken);
+        // console.log('ULIP token updated successfully');
     } catch (error) {
         console.error('Error updating ULIP token:', error);
     }
@@ -65,7 +67,7 @@ async function getDistance(sourcePincode, destinationPincode) {
         // Extract distance information
         const distanceInfo = response?.data?.rows[0]?.elements[0];
         const distance = distanceInfo?.distance?.text;
-        console.log(distance);
+        // console.log(distance);
         return distance;
     } catch (error) {
         console.error(error);
@@ -125,6 +127,8 @@ async function parseXmlToJson(xml) {
 
 async function findCO2Emission(req, res) {
     try {
+        const { VechileNumber, SourcePincode, DestinationPincode, MobilisationDistance, DeMobilisationDistance, LoadedWeight } = req.body;
+        const vehicleNumber = VechileNumber.toUpperCase();
         const options = {
             method: 'POST',
             url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
@@ -133,18 +137,9 @@ async function findCO2Emission(req, res) {
                 'Authorization': `Bearer ${ulipToken}`,
             },
             data: {
-                vehiclenumber: req.body.VechileNumber,
+                vehiclenumber: vehicleNumber,
             },
         };
-
-        const { VechileNumber, SourcePincode, DestinationPincode, MobilisationDistance, DeMobilisationDistance, LoadedWeight, userId } = req.body;
-        const user = await User.findOne({ _id: userId });
-
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        const vehicleNumber = VechileNumber.toUpperCase();
 
         // Validate vehicle number
         if (!/^[a-zA-Z0-9]+$/.test(vehicleNumber) || vehicleNumber.length > 10) {
@@ -171,8 +166,8 @@ async function findCO2Emission(req, res) {
         const date = new Date(dateString);
         const year = date.getFullYear();
         const vehicleCategory = vehicleJsonData?.rc_vch_catg;
-        console.log('vehicleCategory', vehicleCategory);
-        const vehicleOwner = vehicleJsonData?.rc_owner_name?.[0];
+        // console.log('vehicleCategory', vehicleCategory);
+        // const vehicleOwner = vehicleJsonData?.rc_owner_name?.[0];
 
         // get other details for vechileType
         const vechileCategories = await findByVehicleCategory(vehicleCategory);
@@ -205,7 +200,6 @@ async function findCO2Emission(req, res) {
             }
         } else {
             console.log('below2021', otherDetails.co2EPercentageBelow2021);
-
             if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
                 co2Emission = distance * otherDetails.co2EPercentageBelow2021;
             } else {
@@ -227,34 +221,33 @@ async function findCO2Emission(req, res) {
             }
         }
 
-        const count = await InputHistory.countDocuments({ _user: userId });
+        //  const count = await InputHistory.countDocuments({ _user: userId });
 
         // if (count > freeTrailCount) {
         //     throw new Error('You have exceeded your free trial limit.');
         // }
 
-        await InputHistory.create({
-            vehicleNumber,
-            sourcePincode: SourcePincode,
-            destinationPincode: DestinationPincode,
-            lodedWeight: LoadedWeight,
-            mobilizationDistance: mobilisationDistance,
-            deMobilizationDistance: deMobilisationDistance,
-            _user: user,
-        })
+        // await InputHistory.create({
+        // vehicleNumber,
+        //sourcePincode: SourcePincode,
+        //destinationPincode: DestinationPincode,
+        //lodedWeight: LoadedWeight,
+        // mobilizationDistance: mobilisationDistance,
+        //deMobilizationDistance: deMobilisationDistance,
+        //_user: user,
+        // })
 
         // console.log('overallEmission', co2Emission);
         let currentDate = new Date();
-
         let month = monthNames[currentDate.getMonth()];
 
         // // Formulate the desired date string
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
 
-        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleOwner: user.userName, vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber() });
+        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber() });
     } catch (error) {
         console.log('error is : ', error.message)
-        return res.status(404).json({ error: error });
+        return res.status(404).json({ error: error.message });
     }
 }
 
