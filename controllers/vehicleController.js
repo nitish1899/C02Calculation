@@ -150,12 +150,23 @@ async function findCO2Emission(req, res) {
             throw new Error('Invalid source or destination pincode');
         }
 
+        const vehicleData = await axios.request(options);
+        // console.log('EV-Respose: ', vehicleData?.data?.response?.[0]?.response);
+        // console.log((vehicleData?.data?.response?.[0]?.response).includes('ULIPNICDC')) 
+
+        //  ULIPNICDC is not authorized to access Non-Transport vehicle data
+        if ((vehicleData?.data?.response?.[0]?.response).includes('ULIPNICDC')) {
+            return res.status(404).json({ error: 'Non-Transport vehicle found' });
+        }
+
+        // rc_fuel_desc: ELECTRIC(BOV)
+
         // get vechileInfo using vehicle number
-        const vehicleXMLData = (await axios.request(options))?.data?.response?.[0]?.response;
+        const vehicleXMLData = vehicleData?.data?.response?.[0]?.response;
         // console.log('vehicleData', vehicleXMLData);
         const vehicleJsonData = (await parseXmlToJson(vehicleXMLData));
         // console.log('vehicleDataType : ', typeof (vehicleJsonData));
-        // console.log('vehicleData : ', vehicleJsonData);
+        console.log('vehicleData : ', vehicleJsonData);
         if (!vehicleJsonData) {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
@@ -185,41 +196,45 @@ async function findCO2Emission(req, res) {
             return res.status(404).json({ error: 'Invalid pin' });
         }
 
-        function getRandomNumber(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
+        // function getRandomNumber(min, max) {
+        //     return Math.floor(Math.random() * (max - min + 1)) + min;
+        // }
 
         let co2Emission = 0;
 
-        if (year >= 2021) {
-            console.log('above2021', otherDetails.co2EPercentageAbove2021);
-            if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
-                co2Emission = distance * otherDetails.co2EPercentageAbove2021;
-            } else {
-                co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
-            }
-        } else {
-            console.log('below2021', otherDetails.co2EPercentageBelow2021);
-            if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
-                co2Emission = distance * otherDetails.co2EPercentageBelow2021;
-            } else {
-                console.log(otherDetails)
-                co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
-            }
-        }
-
-        const mobilisationDistance = MobilisationDistance?.length ? Number(MobilisationDistance) : '';
-        const deMobilisationDistance = DeMobilisationDistance?.length ? Number(DeMobilisationDistance) : '';
-
-        if (mobilisationDistance || deMobilisationDistance) {
-            console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
+        if (vehicleJsonData.rc_fuel_desc[0] !== 'ELECTRIC(BOV)') {
             if (year >= 2021) {
-                co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+                console.log('above2021', otherDetails.co2EPercentageAbove2021);
+                if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+                    co2Emission = distance * otherDetails.co2EPercentageAbove2021;
+                } else {
+                    co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+                }
+            } else {
+                console.log('below2021', otherDetails.co2EPercentageBelow2021);
+                if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+                    co2Emission = distance * otherDetails.co2EPercentageBelow2021;
+                } else {
+                    console.log(otherDetails)
+                    co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+                }
             }
-            else {
-                co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+
+            const mobilisationDistance = MobilisationDistance?.length ? Number(MobilisationDistance) : '';
+            const deMobilisationDistance = DeMobilisationDistance?.length ? Number(DeMobilisationDistance) : '';
+
+            if (mobilisationDistance || deMobilisationDistance) {
+                console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
+                if (year >= 2021) {
+                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+                }
+                else {
+                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+                }
             }
         }
+
+
 
         //  const count = await InputHistory.countDocuments({ _user: userId });
 
@@ -246,7 +261,7 @@ async function findCO2Emission(req, res) {
 
         return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber() });
     } catch (error) {
-        console.log('error is : ', error.message)
+        // console.log('error is : ', error.message)
         return res.status(404).json({ error: error.message });
     }
 }
