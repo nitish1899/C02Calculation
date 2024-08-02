@@ -128,7 +128,7 @@ async function parseXmlToJson(xml) {
 async function findCO2Emission(req, res) {
     try {
         const { VechileNumber, SourcePincode, DestinationPincode, MobilisationDistance, DeMobilisationDistance, LoadedWeight } = req.body;
-        const vehicleNumber = VechileNumber.toUpperCase();
+        const vehicleNumber = VechileNumber.replace(" ", '').toUpperCase();
         const options = {
             method: 'POST',
             url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
@@ -151,25 +151,29 @@ async function findCO2Emission(req, res) {
         }
 
         const vehicleData = await axios.request(options);
+        const vehicleDetails = vehicleData?.data?.response?.[0]?.response;
+
         // console.log('EV-Respose: ', vehicleData?.data?.response?.[0]?.response);
         // console.log((vehicleData?.data?.response?.[0]?.response).includes('ULIPNICDC')) 
 
         //  ULIPNICDC is not authorized to access Non-Transport vehicle data
-        if ((vehicleData?.data?.response?.[0]?.response).includes('ULIPNICDC')) {
+        if (vehicleDetails.includes('ULIPNICDC')) {
             return res.status(404).json({ error: 'Non-Transport vehicle found' });
+        }
+
+        //  Vehicle Details not Found
+        if (vehicleDetails.includes('Vehicle Details not Found')) {
+            return res.status(404).json({ error: 'Vehicle not found' });
         }
 
         // rc_fuel_desc: ELECTRIC(BOV)
 
         // get vechileInfo using vehicle number
-        const vehicleXMLData = vehicleData?.data?.response?.[0]?.response;
         // console.log('vehicleData', vehicleXMLData);
-        const vehicleJsonData = (await parseXmlToJson(vehicleXMLData));
+        const vehicleJsonData = (await parseXmlToJson(vehicleDetails));
         // console.log('vehicleDataType : ', typeof (vehicleJsonData));
         console.log('vehicleData : ', vehicleJsonData);
-        if (!vehicleJsonData) {
-            return res.status(404).json({ error: 'Vehicle not found' });
-        }
+
 
         // const vehicleInfo = vehicleData.data;
         // // console.log('vehicleInfo',vehicleInfo)
@@ -177,7 +181,7 @@ async function findCO2Emission(req, res) {
         const date = new Date(dateString);
         const year = date.getFullYear();
         const vehicleCategory = vehicleJsonData?.rc_vch_catg;
-        // console.log('vehicleCategory', vehicleCategory);
+        console.log('vehicleCategory', vehicleCategory);
         // const vehicleOwner = vehicleJsonData?.rc_owner_name?.[0];
 
         // get other details for vechileType
@@ -199,6 +203,8 @@ async function findCO2Emission(req, res) {
         // function getRandomNumber(min, max) {
         //     return Math.floor(Math.random() * (max - min + 1)) + min;
         // }
+
+        // 1000 kg co2 emission is equivalent to 12 trees
 
         let co2Emission = 0;
 
