@@ -33,7 +33,7 @@ async function register(req, res) {
     );
 
     // Respond with the user details and token
-    res.status(201).json({
+    return res.status(201).json({
       status: 'created',
       statusbar: '201 Created',
       msg: 'User is created successfully',
@@ -45,7 +45,7 @@ async function register(req, res) {
       },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       status: 'failed',
       statusbar: '500 Internal server error',
       msg: 'Something went wrong',
@@ -62,17 +62,15 @@ async function login(req, res) {
     // console.log('existingUser', existingUser)
     if (!existingUser) {
       // user is not registered yet need to register yourself.
-      return res.status(404).json({ msg: "User does not exist." });
+      throw new Error("User does not exist");
     }
 
     // console.log(' existingUser.pin', existingUser.pin)
     const isPinCorrect = await bcrypt.compare(pin.toString(), existingUser.pin);
     // console.log('isPinCorrect', isPinCorrect)
+
     if (!isPinCorrect)
-      return res.status(400).json({
-        msg: "Invalid Credentials",
-        statusbar: "400 Bad Request",
-      });
+      throw new Error("Incorrect pin found");
 
     // const token = jwt.sign(
     //   {
@@ -83,7 +81,7 @@ async function login(req, res) {
     //   { expiresIn: "1d" }
     // );
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "success",
       data: {
         userId: existingUser._id,
@@ -96,10 +94,9 @@ async function login(req, res) {
   } catch (error) {
     // console.log("Internal server error", error)
 
-    res.status(500).json({
+    return res.status(404).json({
       status: "failed",
-      error: error?.message,
-      stack: error?.stack
+      error: error.message,
     })
   }
 }
@@ -133,7 +130,7 @@ async function forgotPin(req, res) {
     // Respond with success message
     res.status(200).json({ status: 'success', msg: 'Pin has been updated successfully' });
   } catch (error) {
-    res.status(500).json({
+    res.status(404).json({
       status: 'failed',
       msg: 'Something went wrong',
       error: error?.message,
