@@ -4,29 +4,35 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 async function register(req, res) {
-  // console.log('req.body', req.body);
   try {
     const { userName, mobileNumber, pin } = req.body;
 
-    const existingUser = await User.findOne({ mobileNumber });
+    // const existingUser = await User.findOne({ mobileNumber });
 
-    if (existingUser) {
-      return res.status(400).json({ status: "failed", msg: "User already exists" });
-    }
+    // if (existingUser) {
+    //   return res.status(400).json({ status: "failed", msg: "User already exists" });
+    // }
 
     const hashPin = await bcrypt.hash(pin.toString(), 10);
 
-    const newUser = await User.create({ userName, mobileNumber, pin: hashPin });
+    // Find and update the user if they exist, or create a new user if they don't
+    const newUser = await User.findOneAndUpdate(
+      { mobileNumber },  // Find user by mobile number
+      { userName, pin: hashPin }, // Update or set these fields
+      { new: true, upsert: true, setDefaultsOnInsert: true } // Options: return the new doc if one is upserted
+    );
 
+    // Create a JWT token
     const token = jwt.sign(
       {
         mobileNumber: newUser.mobileNumber,
         id: newUser._id,
       },
       process.env.TOKEN_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: '1d' }
     );
 
+    // Respond with the user details and token
     res.status(201).json({
       status: 'created',
       statusbar: '201 Created',
