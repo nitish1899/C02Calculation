@@ -45,12 +45,9 @@ async function register(req, res) {
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(404).json({
       status: 'failed',
-      statusbar: '500 Internal server error',
-      msg: 'Something went wrong',
       error: error?.message,
-      stack: error?.stack,
     });
   }
 }
