@@ -214,7 +214,7 @@ async function findCO2Emission(req, res) {
                 if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
                     co2Emission = distance * otherDetails.co2EPercentageAbove2021;
                 } else {
-                    co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+                    co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage;
                 }
             } else {
                 console.log('below2021', otherDetails.co2EPercentageBelow2021);
@@ -222,7 +222,7 @@ async function findCO2Emission(req, res) {
                     co2Emission = distance * otherDetails.co2EPercentageBelow2021;
                 } else {
                     console.log(otherDetails)
-                    co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage / 100;
+                    co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage;
                 }
             }
 
@@ -232,10 +232,10 @@ async function findCO2Emission(req, res) {
             if (mobilisationDistance || deMobilisationDistance) {
                 console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
                 if (year >= 2021) {
-                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage;
                 }
                 else {
-                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage / 100;
+                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage;
                 }
             }
         }
