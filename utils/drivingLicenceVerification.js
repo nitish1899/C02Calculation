@@ -7,7 +7,7 @@ async function drivingLicenceVerification(req, res) {
         const { dlnumber, dob } = req.body;
         const ulipToken = getUlipToken();
 
-        console.log('ulipToken ', ulipToken);
+        // console.log('ulipToken ', ulipToken);
 
         if (
             [dlnumber, dob].some((field) => field?.trim() === "")

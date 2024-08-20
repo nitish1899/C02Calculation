@@ -19,7 +19,7 @@ var upload = multer({
         ){
             callback(null, true)
         } else{
-            console.log("Error in uploading")
+            // console.log("Error in uploading")
             callback(null, false)
         }
     },

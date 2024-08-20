@@ -44,7 +44,7 @@ const verifyOtp = async (req, res) => {
     try {
 
         const existingOtp = await otpModel.findOne({ mobileNumber: req.body.mobileNumber });
-        console.log('existingOtpDetails', existingOtp);
+        // console.log('existingOtpDetails', existingOtp);
         if (!existingOtp.otp) {
             throw new Error('Otp does not exists');
         }

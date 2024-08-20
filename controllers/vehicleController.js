@@ -10,8 +10,6 @@ require('dotenv').config();
 const cron = require('node-cron');
 const { getUlipToken } = require("../utils/ulipApiAccess.js");
 
-
-
 // let ulipToken = '';
 
 // Placeholder function to simulate fetching the new ULIP token
@@ -175,7 +173,7 @@ async function findCO2Emission(req, res) {
         // console.log('vehicleData', vehicleXMLData);
         const vehicleJsonData = (await parseXmlToJson(vehicleDetails));
         // console.log('vehicleDataType : ', typeof (vehicleJsonData));
-        console.log('vehicleData : ', vehicleJsonData);
+        // console.log('vehicleData : ', vehicleJsonData);
 
 
         // const vehicleInfo = vehicleData.data;
@@ -184,7 +182,7 @@ async function findCO2Emission(req, res) {
         const date = new Date(dateString);
         const year = date.getFullYear();
         const vehicleCategory = vehicleJsonData?.rc_vch_catg;
-        console.log('vehicleCategory', vehicleCategory);
+        // console.log('vehicleCategory', vehicleCategory);
         // const vehicleOwner = vehicleJsonData?.rc_owner_name?.[0];
 
         // get other details for vechileType
@@ -213,18 +211,18 @@ async function findCO2Emission(req, res) {
 
         if (vehicleJsonData.rc_fuel_desc[0] !== 'ELECTRIC(BOV)') {
             if (year >= 2021) {
-                console.log('above2021', otherDetails.co2EPercentageAbove2021);
+                // console.log('above2021', otherDetails.co2EPercentageAbove2021);
                 if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
                     co2Emission = distance * otherDetails.co2EPercentageAbove2021;
                 } else {
                     co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage;
                 }
             } else {
-                console.log('below2021', otherDetails.co2EPercentageBelow2021);
+                // console.log('below2021', otherDetails.co2EPercentageBelow2021);
                 if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
                     co2Emission = distance * otherDetails.co2EPercentageBelow2021;
                 } else {
-                    console.log(otherDetails)
+                    // console.log(otherDetails)
                     co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage;
                 }
             }
@@ -233,7 +231,7 @@ async function findCO2Emission(req, res) {
             const deMobilisationDistance = DeMobilisationDistance?.length ? Number(DeMobilisationDistance) : '';
 
             if (mobilisationDistance || deMobilisationDistance) {
-                console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
+                // console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
                 if (year >= 2021) {
                     co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage;
                 }
