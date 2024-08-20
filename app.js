@@ -17,12 +17,15 @@ connectDB();
 const authRoutes = require('./routes/auth');
 const otpRoutes = require('./routes/otp');
 const vehicleRoutes = require('./routes/vehicle');
+const kycRoutes = require('./routes/kyc');
+
 
 app.use(express.json()); // for parsing application/json
 
 app.use('/api/auth', authRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/vehicle', vehicleRoutes);
+app.use('/api/kyc/verify', kycRoutes);
 
 app.use('/', (req, res) => res.json({ message: 'Welcome to CO2e Calculator' }));
 
