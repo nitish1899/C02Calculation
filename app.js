@@ -29,8 +29,6 @@ app.use('/api/kyc/verify', kycRoutes);
 
 app.use('/', (req, res) => res.json({ message: 'Welcome to CO2e Calculator' }));
 
-
-
 http.listen(process.env.PORT || 4500, function () {
   console.log('Server is running');
 });
