@@ -36,8 +36,7 @@ async function drivingLicenceVerification(req, res) {
 
         return res.status(200).json({ message: 'DL Verified Successfully' });
     } catch (error) {
-        // throw new Error(400, error.message);
-        return res.status(200).json(error.message);
+        return res.status(400).json(error.message);
     }
 };
 
