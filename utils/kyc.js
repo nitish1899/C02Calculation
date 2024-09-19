@@ -132,13 +132,13 @@ async function panVerification(req, res) {
         }
 
         const apiResponse = await axios.request(options);
-        const response = apiResponse?.data?.response?.[0]?.response;
+        // const response = apiResponse?.data?.response?.[0]?.response;
 
-        if (apiResponse.data.error === 'true') {
+        if (apiResponse && apiResponse.data.error === 'true') {
             throw new Error(400, ('Pan Verification Failed'));
         }
 
-        return res.status(200).json({ response, message: 'Pan Verified Successfully' });
+        return res.status(200).json({ message: 'Pan Verified Successfully' });
     }
     catch (error) {
         // console.log('Error', error);
