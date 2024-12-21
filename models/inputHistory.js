@@ -7,7 +7,7 @@ const inputSchema = new mongoose.Schema({
     lodedWeight: Number,
     mobilizationDistance: Number,
     deMobilizationDistance: Number,
-    _user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 })
 
 module.exports = mongoose.model('InputHistory', inputSchema);

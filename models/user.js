@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
     index: true,
   },
   pin: { type: String, required: true },
+  gstin: { type: String }
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -128,7 +128,17 @@ async function parseXmlToJson(xml) {
 async function findCO2Emission(req, res) {
     try {
         const ulipToken = getUlipToken();
-        const { VechileNumber, SourcePincode, DestinationPincode, MobilisationDistance, DeMobilisationDistance, LoadedWeight } = req.body;
+        const {
+            VechileNumber,
+            SourcePincode,
+            DestinationPincode,
+            MobilisationDistance,
+            DeMobilisationDistance,
+            LoadedWeight,
+            gstin,
+            userId
+        } = req.body;
+        const user = await User.findOneAndUpdate(userId, { gstin });
         const vehicleNumber = VechileNumber.replace(" ", '').toUpperCase();
         const options = {
             method: 'POST',
@@ -243,21 +253,21 @@ async function findCO2Emission(req, res) {
 
 
 
-        //  const count = await InputHistory.countDocuments({ _user: userId });
+        const count = await InputHistory.countDocuments({ _user: userId });
 
-        // if (count > freeTrailCount) {
-        //     throw new Error('You have exceeded your free trial limit.');
-        // }
+        if (count > freeTrailCount) {
+            throw new Error('You have exceeded your free trial limit.');
+        }
 
-        // await InputHistory.create({
-        // vehicleNumber,
-        //sourcePincode: SourcePincode,
-        //destinationPincode: DestinationPincode,
-        //lodedWeight: LoadedWeight,
-        // mobilizationDistance: mobilisationDistance,
-        //deMobilizationDistance: deMobilisationDistance,
-        //_user: user,
-        // })
+        await InputHistory.create({
+            vehicleNumber,
+            sourcePincode: SourcePincode,
+            destinationPincode: DestinationPincode,
+            lodedWeight: LoadedWeight,
+            mobilizationDistance: MobilisationDistance,
+            deMobilizationDistance: DeMobilisationDistance,
+            user: user,
+        })
 
         // console.log('overallEmission', co2Emission);
         let currentDate = new Date();
