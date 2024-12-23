@@ -277,7 +277,13 @@ async function findCO2Emission(req, res) {
         // // Formulate the desired date string
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
 
-        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber(), vehicleJsonData });
+        return res.status(201).json({
+            co2Emission: round(co2Emission, 2),
+            vehicleNumber,
+            certificateIssueDate,
+            certificateNumber: generateUuidNumber(),
+            // vehicleJsonData
+        });
     } catch (error) {
         // console.log('error is : ', error.message)
         return res.status(404).json({ error: error.message });
@@ -435,7 +441,12 @@ async function getCabonFootPrints(req, res) {
         // // Formulate the desired date string
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
 
-        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber(), vehicleJsonData });
+        return res.status(201).json({
+            co2Emission: round(co2Emission, 2),
+            vehicleNumber,
+            certificateIssueDate,
+            certificateNumber: generateUuidNumber()
+        });
     } catch (error) {
         // console.log('error is : ', error.message)
         return res.status(404).json({ error: error.message });
