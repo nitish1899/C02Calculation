@@ -139,7 +139,7 @@ async function findCO2Emission(req, res) {
             gstin,
             userId
         } = req.body;
-        const user = await User.findOneAndUpdate(userId, { gstin });
+        const user = await User.findByIdAndUpdate(userId, { gstin });
         const vehicleNumber = VechileNumber.replace(" ", '').toUpperCase();
         const options = {
             method: 'POST',
