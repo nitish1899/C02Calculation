@@ -74,6 +74,7 @@ async function getDistance(sourcePincode, destinationPincode) {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+
 /*
 async function insert(req, res) {
     try {
@@ -283,8 +284,166 @@ async function findCO2Emission(req, res) {
     }
 }
 
+async function getCabonFootPrints(req, res) {
+    try {
+        const ulipToken = getUlipToken();
+        const {
+            VechileNumber,
+            SourcePincode,
+            DestinationPincode,
+            MobilisationDistance,
+            DeMobilisationDistance,
+            LoadedWeight,
+            // gstin,
+            // userId
+        } = req.body;
+        // const user = await User.findOneAndUpdate(userId, { gstin });
+        const vehicleNumber = VechileNumber.replace(" ", '').toUpperCase();
+        const options = {
+            method: 'POST',
+            url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ulipToken}`,
+            },
+            data: {
+                vehiclenumber: vehicleNumber,
+            },
+        };
+
+        // Validate vehicle number
+        if (!/^[a-zA-Z0-9]+$/.test(vehicleNumber) || vehicleNumber.length > 10) {
+            return res.status(400).json({ error: 'Invalid vehicle number. Only alphanumeric characters are allowed.' });
+        }
+
+        if (!Number(SourcePincode) || SourcePincode.length != 6 || !Number(DestinationPincode) || DestinationPincode.length != 6) {
+            throw new Error('Invalid source or destination pincode');
+        }
+
+        const vehicleData = await axios.request(options);
+        const vehicleDetails = vehicleData?.data?.response?.[0]?.response;
+
+        // console.log('EV-Respose: ', vehicleData?.data?.response?.[0]?.response);
+        // console.log((vehicleData?.data?.response?.[0]?.response).includes('ULIPNICDC')) 
+
+        //  ULIPNICDC is not authorized to access Non-Transport vehicle data
+        if (vehicleDetails.includes('ULIPNICDC')) {
+            return res.status(404).json({ error: 'Non-Transport vehicle found' });
+        }
+
+        //  Vehicle Details not Found
+        if (vehicleDetails.includes('Vehicle Details not Found')) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+
+        // rc_fuel_desc: ELECTRIC(BOV)
+
+        // get vechileInfo using vehicle number
+        // console.log('vehicleData', vehicleXMLData);
+        const vehicleJsonData = (await parseXmlToJson(vehicleDetails));
+        // console.log('vehicleDataType : ', typeof (vehicleJsonData));
+        // console.log('vehicleData : ', vehicleJsonData);
+
+
+        // const vehicleInfo = vehicleData.data;
+        // // console.log('vehicleInfo',vehicleInfo)
+        const dateString = vehicleJsonData?.rc_regn_dt?.[0];
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const vehicleCategory = vehicleJsonData?.rc_vch_catg;
+        // console.log('vehicleCategory', vehicleCategory);
+        // const vehicleOwner = vehicleJsonData?.rc_owner_name?.[0];
+
+        // get other details for vechileType
+        const vechileCategories = await findByVehicleCategory(vehicleCategory);
+        const orderedVechileCategory = orderBy(vechileCategories, 'standardLadenWeight', 'desc');
+        const ladenWeight = vehicleJsonData?.[0]?.rc_gvw - vehicleJsonData?.[0]?.rc_unld_wt;
+        const nearestVechileCategory = orderedVechileCategory.filter(v => v.standardLadenWeight <= ladenWeight);
+
+        const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
+        // console.log('otherDetails', otherDetails);
+        const distanceString = await getDistance(SourcePincode, DestinationPincode);
+        // console.log('disString', distanceString);
+        const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
+
+        if (!distance) {
+            return res.status(404).json({ error: 'Invalid pin' });
+        }
+
+        // function getRandomNumber(min, max) {
+        //     return Math.floor(Math.random() * (max - min + 1)) + min;
+        // }
+
+        // 1000 kg co2 emission is equivalent to 12 trees
+
+        let co2Emission = 0;
+
+        if (vehicleJsonData.rc_fuel_desc[0] !== 'ELECTRIC(BOV)') {
+            if (year >= 2021) {
+                // console.log('above2021', otherDetails.co2EPercentageAbove2021);
+                if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+                    co2Emission = distance * otherDetails.co2EPercentageAbove2021;
+                } else {
+                    co2Emission = distance * otherDetails.co2EPercentageAbove2021 * otherDetails.lodedVehicleNomalizationPercentage;
+                }
+            } else {
+                // console.log('below2021', otherDetails.co2EPercentageBelow2021);
+                if (round((LoadedWeight), 2) > (0.5 * otherDetails.standardLadenWeight)) {
+                    co2Emission = distance * otherDetails.co2EPercentageBelow2021;
+                } else {
+                    // console.log(otherDetails)
+                    co2Emission = distance * otherDetails.co2EPercentageBelow2021 * otherDetails.lodedVehicleNomalizationPercentage;
+                }
+            }
+
+            const mobilisationDistance = MobilisationDistance?.length ? Number(MobilisationDistance) : '';
+            const deMobilisationDistance = DeMobilisationDistance?.length ? Number(DeMobilisationDistance) : '';
+
+            if (mobilisationDistance || deMobilisationDistance) {
+                // console.log('extraDistance', (mobilisationDistance + deMobilisationDistance));
+                if (year >= 2021) {
+                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageAbove2021 * otherDetails.emptyVehicleNomalizationPercentage;
+                }
+                else {
+                    co2Emission = co2Emission + (MobilisationDistance + DeMobilisationDistance) * otherDetails.co2EPercentageBelow2021 * otherDetails.emptyVehicleNomalizationPercentage;
+                }
+            }
+        }
+
+
+
+        // const count = await InputHistory.countDocuments({ _user: userId });
+
+        // if (count > freeTrailCount) {
+        //     throw new Error('You have exceeded your free trial limit.');
+        // }
+
+        // await InputHistory.create({
+        //     vehicleNumber,
+        //     sourcePincode: SourcePincode,
+        //     destinationPincode: DestinationPincode,
+        //     lodedWeight: LoadedWeight,
+        //     mobilizationDistance: MobilisationDistance,
+        //     deMobilizationDistance: DeMobilisationDistance,
+        //     user: user,
+        // })
+
+        // console.log('overallEmission', co2Emission);
+        let currentDate = new Date();
+        let month = monthNames[currentDate.getMonth()];
+
+        // // Formulate the desired date string
+        const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+
+        return res.status(201).json({ co2Emission: round(co2Emission, 2), vehicleNumber, certificateIssueDate, certificateNumber: generateUuidNumber(), vehicleJsonData });
+    } catch (error) {
+        // console.log('error is : ', error.message)
+        return res.status(404).json({ error: error.message });
+    }
+}
+
 
 module.exports = {
-    findCO2Emission, findByVehicleCategory
+    findCO2Emission, findByVehicleCategory, getCabonFootPrints
 };
 
