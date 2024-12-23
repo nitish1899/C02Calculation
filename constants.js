@@ -1,4 +1,4 @@
-const freeTrailCount = 10;
+const freeTrailCount = 100;
 
 const monthNames = [
     "January", "February", "March", "April", "May", "June",
