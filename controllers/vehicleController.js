@@ -8,37 +8,37 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const xml2js = require('xml2js');
 require('dotenv').config();
 const cron = require('node-cron');
-const { getUlipToken } = require("../utils/ulipApiAccess.js");
+// const { getUlipToken } = require("../utils/ulipApiAccess.js");
 
-// let ulipToken = '';
+let ulipToken = '';
 
 // Placeholder function to simulate fetching the new ULIP token
-// async function fetchNewULIPToken() {
-//     const response = await axios.post('https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/user/login', {
-//         username: process.env.ULIP_USER_NAME,
-//         password: process.env.ULIP_PASSWORD
-//     }, {
-//         headers: {
-//             'Content-Type': 'application/json',
-//             'Accept': 'application/json'
-//         }
-//     });
+async function fetchNewULIPToken() {
+    const response = await axios.post('https://www.ulip.dpiit.gov.in/ulip/v1.0.0/user/login', {
+        username: process.env.ULIP_PROD_USER_NAME,
+        password: process.env.ULIP_PROD_PASSWORD
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    });
 
-//     // Implement the logic to fetch the new ULIP token from the required source
-//     return response?.data?.response?.id; // Replace this with the actual new token
-// }
+    // Implement the logic to fetch the new ULIP token from the required source
+    return response?.data?.response?.id; // Replace this with the actual new token
+}
 
 // Schedule a cron job to update the ULIP token every hour
-// cron.schedule('*/1 * * * *', async () => {
-//     try {
-//         // Function to fetch the new ULIP token
-//         ulipToken = await fetchNewULIPToken();
-//         // console.log('ULIP token ', ulipToken);
-//         // console.log('ULIP token updated successfully');
-//     } catch (error) {
-//         console.error('Error updating ULIP token:', error);
-//     }
-// });
+cron.schedule('*/1 * * * *', async () => {
+    try {
+        // Function to fetch the new ULIP token
+        ulipToken = await fetchNewULIPToken();
+        // console.log('ULIP token ', ulipToken);
+        // console.log('ULIP token updated successfully');
+    } catch (error) {
+        console.error('Error updating ULIP token:', error);
+    }
+});
 
 const { v4: uuidv4 } = require('uuid');
 
@@ -128,7 +128,7 @@ async function parseXmlToJson(xml) {
 
 async function findCO2Emission(req, res) {
     try {
-        const ulipToken = getUlipToken();
+        // const ulipToken = getUlipToken();
         const {
             VechileNumber,
             SourcePincode,
@@ -143,7 +143,8 @@ async function findCO2Emission(req, res) {
         const vehicleNumber = VechileNumber.replace(" ", '').toUpperCase();
         const options = {
             method: 'POST',
-            url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
+            // url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
+            url: 'https://www.ulip.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${ulipToken}`,
@@ -292,7 +293,7 @@ async function findCO2Emission(req, res) {
 
 async function getCabonFootPrints(req, res) {
     try {
-        const ulipToken = getUlipToken();
+        // const ulipToken = getUlipToken();
         const {
             VechileNumber,
             SourcePincode,
@@ -307,7 +308,7 @@ async function getCabonFootPrints(req, res) {
         const vehicleNumber = VechileNumber.replace(" ", '').toUpperCase();
         const options = {
             method: 'POST',
-            url: 'https://www.ulipstaging.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
+            url: 'https://www.ulip.dpiit.gov.in/ulip/v1.0.0/VAHAN/01',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${ulipToken}`,

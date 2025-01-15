@@ -17,6 +17,16 @@ async function fetchNewULIPToken() {
         }
     });
 
+    // const response = await axios.post('https://www.ulip.dpiit.gov.in/ulip/v1.0.0/user/login', {
+    //     username: process.env.ULIP_PROD_USER_NAME,
+    //     password: process.env.ULIP_PROD_PASSWORD
+    // }, {
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //         'Accept': 'application/json'
+    //     }
+    // });
+
     // Implement the logic to fetch the new ULIP token from the required source
     return response?.data?.response?.id; // Replace this with the actual new token
 }
