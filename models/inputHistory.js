@@ -1,13 +1,18 @@
 const mongoose = require('mongoose');
 
-const inputSchema = new mongoose.Schema({
-    vehicleNumber: String,
-    sourcePincode: Number,
-    destinationPincode: Number,
-    lodedWeight: Number,
-    mobilizationDistance: Number,
-    deMobilizationDistance: Number,
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-})
+const inputSchema = new mongoose.Schema(
+    {
+        vehicleNumber: String,
+        sourcePincode: Number,
+        destinationPincode: Number,
+        lodedWeight: Number,
+        mobilizationDistance: Number,
+        deMobilizationDistance: Number,
+        carbonFootprint: Number,
+        certificateNumber: String,
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    },
+    { timestamps: true }
+)
 
 module.exports = mongoose.model('InputHistory', inputSchema);

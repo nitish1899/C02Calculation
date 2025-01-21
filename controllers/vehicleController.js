@@ -261,15 +261,6 @@ async function findCO2Emission(req, res) {
             throw new Error('You have exceeded your free trial limit.');
         }
 
-        await InputHistory.create({
-            vehicleNumber,
-            sourcePincode: SourcePincode,
-            destinationPincode: DestinationPincode,
-            lodedWeight: LoadedWeight,
-            mobilizationDistance: MobilisationDistance,
-            deMobilizationDistance: DeMobilisationDistance,
-            user: user,
-        })
 
         // console.log('overallEmission', co2Emission);
         let currentDate = new Date();
@@ -277,12 +268,25 @@ async function findCO2Emission(req, res) {
 
         // // Formulate the desired date string
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+        const certificateNumber = generateUuidNumber();
+
+        await InputHistory.create({
+            vehicleNumber,
+            sourcePincode: SourcePincode,
+            destinationPincode: DestinationPincode,
+            lodedWeight: LoadedWeight,
+            mobilizationDistance: MobilisationDistance,
+            deMobilizationDistance: DeMobilisationDistance,
+            carbonFootprint: co2Emission,
+            certificateNumber,
+            user: user,
+        })
 
         return res.status(201).json({
             co2Emission: round(co2Emission, 2),
             vehicleNumber,
             certificateIssueDate,
-            certificateNumber: generateUuidNumber(),
+            certificateNumber,
             // vehicleJsonData
         });
     } catch (error) {
