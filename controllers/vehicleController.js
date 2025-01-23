@@ -270,6 +270,8 @@ async function findCO2Emission(req, res) {
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
         const certificateNumber = generateUuidNumber();
 
+        console.log('fuelType:', vehicleJsonData?.rc_fuel_desc?.[0])
+
         await InputHistory.create({
             vehicleNumber,
             sourcePincode: SourcePincode,
@@ -280,6 +282,7 @@ async function findCO2Emission(req, res) {
             carbonFootprint: co2Emission,
             certificateNumber,
             user: user,
+            fuelType: vehicleJsonData?.rc_fuel_desc?.[0],
         })
 
         return res.status(201).json({
@@ -287,7 +290,7 @@ async function findCO2Emission(req, res) {
             vehicleNumber,
             certificateIssueDate,
             certificateNumber,
-            // vehicleJsonData
+            vehicleJsonData
         });
     } catch (error) {
         // console.log('error is : ', error.message)

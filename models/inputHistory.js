@@ -11,6 +11,7 @@ const inputSchema = new mongoose.Schema(
         carbonFootprint: Number,
         certificateNumber: String,
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        fuelType: String,
     },
     { timestamps: true }
 )
