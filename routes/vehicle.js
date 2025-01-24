@@ -9,12 +9,13 @@ router.get('/vehicles/type', vehicleController.findByVehicleCategory);
 
 // router.get('/distance', vehicleController.getDistance);
 router.post('/getCabonFootPrints', vehicleController.getCabonFootPrints);
+router.get('/ownerVehicleInfo/:userId', vehicleController.ownerVehicleInfo);
 
 router.get('/carbonfootprint/:vehicleNumber', vehicleController.getCarbonFootprintByVehicleNumber);
 
-router.post('/carbonfootprint1', vehicleController.getCarbonFootprintByVehicleNumberbydate);
+router.get('/carbon-footprint', vehicleController.getCarbonFootprintByVehicleNumberbydate);
 
-router.get('/fueltype/:vehicleNumber',vehicleController.getFuelTypeByVehicleNumber);
+router.get('/fueltype/:vehicleNumber', vehicleController.getFuelTypeByVehicleNumber);
 
 router.get('/carbonfootprint/diesel/:fuelType', vehicleController.getCarbonFootprintByDieselVehiclesAllTime);
 
