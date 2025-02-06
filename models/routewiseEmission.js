@@ -4,6 +4,7 @@ const routes = ['Delhi-Mumbai', 'Bangalore-Hyderabad', 'Lucknow-Varanasi', 'Kolk
 
 const routewiseEmissionSchema = new mongoose.Schema(
     {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         route: { type: String, enum: routes, default: 'Other Routes' },
         totalEmission: { type: Number, default: 0 }
     },

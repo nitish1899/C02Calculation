@@ -280,7 +280,7 @@ async function findCO2Emission(req, res) {
             distance,
         });
 
-        await addco2EmissionToRoute(round(co2Emission, 2), source, destination);
+        await addco2EmissionToRoute(userId, round(co2Emission, 2), source, destination);
 
         return res.status(201).json({
             co2Emission: round(co2Emission, 2),
@@ -295,7 +295,7 @@ async function findCO2Emission(req, res) {
     }
 }
 
-const addco2EmissionToRoute = async (co2Emission, sourceDetails, destinationDetails) => {
+const addco2EmissionToRoute = async (userId, co2Emission, sourceDetails, destinationDetails) => {
     try {
         const regex = new RegExp(sourceAndDestination.join("|"), "i");
         const sourceMatch = sourceDetails.match(regex);
@@ -317,7 +317,7 @@ const addco2EmissionToRoute = async (co2Emission, sourceDetails, destinationDeta
                 : "Other Routes";
 
         // Find the emission record for the route
-        let routewiseEmissionData = await RoutewiseEmission.findOne({ route });
+        let routewiseEmissionData = await RoutewiseEmission.findOne({ user: userId, route });
 
         if (!routewiseEmissionData) {
             // Create a new entry if no existing record is found
