@@ -280,7 +280,7 @@ async function findCO2Emission(req, res) {
             distance,
         });
 
-        await addco2EmissionToRoute(userId, round(co2Emission, 2), source, destination);
+        await addco2EmissionToRoute(user, round(co2Emission, 2), source, destination);
 
         return res.status(201).json({
             co2Emission: round(co2Emission, 2),
@@ -295,7 +295,7 @@ async function findCO2Emission(req, res) {
     }
 }
 
-const addco2EmissionToRoute = async (userId, co2Emission, sourceDetails, destinationDetails) => {
+const addco2EmissionToRoute = async (user, co2Emission, sourceDetails, destinationDetails) => {
     try {
         const regex = new RegExp(sourceAndDestination.join("|"), "i");
         const sourceMatch = sourceDetails.match(regex);
@@ -317,11 +317,11 @@ const addco2EmissionToRoute = async (userId, co2Emission, sourceDetails, destina
                 : "Other Routes";
 
         // Find the emission record for the route
-        let routewiseEmissionData = await RoutewiseEmission.findOne({ user: userId, route });
+        let routewiseEmissionData = await RoutewiseEmission.findOne({ user, route });
 
         if (!routewiseEmissionData) {
             // Create a new entry if no existing record is found
-            routewiseEmissionData = new RoutewiseEmission({ route, emission: 0 });
+            routewiseEmissionData = new RoutewiseEmission({ user, route, emission: 0 });
         }
 
         // Update total emission
@@ -879,13 +879,21 @@ const ownerVehicleInfo = async (req, res) => {
 
 const getRouteWiseEmission = async (req, res) => {
     try {
-        const routewiseEmission = await RoutewiseEmission.find();
+        const { userId } = req.params;
+        if (!userId) {
+            throw new Error('User Id is required!');
+        }
+        const routewiseEmission = await RoutewiseEmission.find({ user: userId });
+
+        const routewiseEmissionData = routes.map(route => {
+            const routeData = routewiseEmission?.find(r => r.route === route);
+            const totalEmission = routeData ? routeData.totalEmission : 0;
+            return { route, totalEmission };
+        })
         console.log(routewiseEmission);
         return res.status(200).json({
             success: true,
-            routewiseEmission: routewiseEmission.map(routeData => (
-                { route: routeData.route, totalEmission: routeData.totalEmission }
-            ))
+            routewiseEmissionData
         })
     } catch (error) {
         console.log(error)
