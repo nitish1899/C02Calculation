@@ -8,8 +8,12 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const xml2js = require('xml2js');
 require('dotenv').config();
 const cron = require('node-cron');
+const { routes } = require('../models/routewiseEmission');
+const RoutewiseEmission = require('../models/routewiseEmission');
 
 const mongoose = require('mongoose');
+
+const sourceAndDestination = ['Delhi', 'Mumbai', 'Bangalore', 'Hyderabad', 'Lucknow', 'Varanasi', 'Kolkata', 'Chennai', 'Chandigarh'];
 
 // const { getUlipToken } = require("../utils/ulipApiAccess.js");
 
@@ -67,11 +71,19 @@ async function getDistance(sourcePincode, destinationPincode) {
             throw new Error('Invalid pincode');
         }
 
+        const source = response?.data?.origin_addresses;
+        const destination = response?.data?.destination_addresses;
+
+        if (!source?.[0].length) { throw new Error('Source not found'); }
+
+        if (!destination?.[0].length) { throw new Error('Destination not found'); }
+
+
         // Extract distance information
         const distanceInfo = response?.data?.rows[0]?.elements[0];
         const distance = distanceInfo?.distance?.text;
         // console.log(distance);
-        return distance;
+        return { distanceString: distance, source: source?.[0], destination: destination?.[0] };
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'Internal Server Error' });
@@ -151,12 +163,12 @@ async function findCO2Emission(req, res) {
         // console.log((vehicleData?.data?.response?.[0]?.response).includes('ULIPNICDC')) 
 
         //  ULIPNICDC is not authorized to access Non-Transport vehicle data
-        if (vehicleDetails.includes('ULIPNICDC')) {
+        if (vehicleDetails?.includes('ULIPNICDC')) {
             return res.status(404).json({ error: 'Non-Transport vehicle found' });
         }
 
         //  Vehicle Details not Found
-        if (vehicleDetails.includes('Vehicle Details not Found')) {
+        if (vehicleDetails?.includes('Vehicle Details not Found')) {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
 
@@ -186,7 +198,8 @@ async function findCO2Emission(req, res) {
 
         const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
         // console.log('otherDetails', otherDetails);
-        const distanceString = await getDistance(SourcePincode, DestinationPincode);
+        const { distanceString, source, destination } = await getDistance(SourcePincode, DestinationPincode);
+
         // console.log('disString', distanceString);
         const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
 
@@ -264,7 +277,10 @@ async function findCO2Emission(req, res) {
             certificateNumber,
             user: user,
             fuelType: vehicleJsonData?.rc_fuel_desc?.[0],
-        })
+            distance,
+        });
+
+        await addco2EmissionToRoute(round(co2Emission, 2), source, destination);
 
         return res.status(201).json({
             co2Emission: round(co2Emission, 2),
@@ -278,6 +294,47 @@ async function findCO2Emission(req, res) {
         return res.status(404).json({ error: error.message });
     }
 }
+
+const addco2EmissionToRoute = async (co2Emission, sourceDetails, destinationDetails) => {
+    try {
+        const regex = new RegExp(sourceAndDestination.join("|"), "i");
+        const sourceMatch = sourceDetails.match(regex);
+        const destinationMatch = destinationDetails.match(regex);
+
+        const source = sourceMatch ? sourceMatch[0] : null;
+        const destination = destinationMatch ? destinationMatch[0] : null;
+
+        if (!source || !destination) {
+            console.error("Source or Destination not found in predefined list.");
+            return;
+        }
+
+        // Determine the route correctly
+        const route = routes.includes(`${source}-${destination}`)
+            ? `${source}-${destination}`
+            : routes.includes(`${destination}-${source}`)
+                ? `${destination}-${source}`
+                : "Other Routes";
+
+        // Find the emission record for the route
+        let routewiseEmissionData = await RoutewiseEmission.findOne({ route });
+
+        if (!routewiseEmissionData) {
+            // Create a new entry if no existing record is found
+            routewiseEmissionData = new RoutewiseEmission({ route, emission: 0 });
+        }
+
+        // Update total emission
+        routewiseEmissionData.totalEmission += Number(co2Emission);
+
+        // Save the updated record
+        await routewiseEmissionData.save();
+
+        console.log(`Updated emissions for route ${route}: ${routewiseEmissionData.totalEmission}`);
+    } catch (error) {
+        console.error("Error updating CO2 emissions:", error);
+    }
+};
 
 async function getCabonFootPrints(req, res) {
     try {
@@ -419,6 +476,9 @@ async function getCabonFootPrints(req, res) {
             certificateNumber: generateUuidNumber()
         });
     } catch (error) {
+        if (error.response) {
+            return res.status(404).json({ error: 'Failed to load response' });
+        }
         // console.log('error is : ', error.message)
         return res.status(404).json({ error: error.message });
     }
@@ -817,8 +877,24 @@ const ownerVehicleInfo = async (req, res) => {
     }
 };
 
+const getRouteWiseEmission = async (req, res) => {
+    try {
+        const routewiseEmission = await RoutewiseEmission.find();
+        console.log(routewiseEmission);
+        return res.status(200).json({
+            success: true,
+            routewiseEmission: routewiseEmission.map(routeData => (
+                { route: routeData.route, totalEmission: routeData.totalEmission }
+            ))
+        })
+    } catch (error) {
+        console.log(error)
+    }
+
+}
+
 
 module.exports = {
-    findCO2Emission, findByVehicleCategory, getCabonFootPrints, getCarbonFootprintByVehicleNumberbydate, getCarbonFootprintByVehicleNumber, getFuelTypeByVehicleNumber, getCarbonFootprintByDieselVehiclesAllTime, getCarbonFootprintByDieselVehiclesByDate, ownerVehicleInfo
+    findCO2Emission, findByVehicleCategory, getCabonFootPrints, getCarbonFootprintByVehicleNumberbydate, getCarbonFootprintByVehicleNumber, getFuelTypeByVehicleNumber, getCarbonFootprintByDieselVehiclesAllTime, getCarbonFootprintByDieselVehiclesByDate, ownerVehicleInfo, getRouteWiseEmission
 };
 

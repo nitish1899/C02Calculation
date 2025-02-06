@@ -12,6 +12,7 @@ const inputSchema = new mongoose.Schema(
         certificateNumber: String,
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         fuelType: String,
+        distance: { type: Number, required: true }
     },
     { timestamps: true }
 )
