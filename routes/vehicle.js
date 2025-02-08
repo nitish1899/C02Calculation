@@ -21,6 +21,11 @@ router.get('/carbonfootprint/diesel/:fuelType', vehicleController.getCarbonFootp
 
 router.get('/carbonfootprint/dieselvehicles/:userId', vehicleController.getCarbonFootprintByDieselVehiclesByDate);
 
+router.get('/routewiseEmission/:userId', vehicleController.getRouteWiseEmission);
+
+
+router.get('/carbonfootprintbyfueltype', vehicleController.getCarbonFootprintByDate);
+
 
 module.exports = router;
 

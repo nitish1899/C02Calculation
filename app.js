@@ -1,5 +1,7 @@
 const express = require('express');
 const app = express();
+const session = require("express-session");
+const passport = require("./config/passport");
 const http = require('http').Server(app);
 const cors = require('cors');
 require('dotenv').config();
@@ -14,7 +16,19 @@ app.use(cors(corsOptions));
 
 connectDB();
 
-const authRoutes = require('./routes/auth');
+// Session Middleware
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+const authRoutes = require("./routes/authRoutes");
 const otpRoutes = require('./routes/otp');
 const vehicleRoutes = require('./routes/vehicle');
 const kycRoutes = require('./routes/kyc');
@@ -22,8 +36,9 @@ const queryRoutes = require('./routes/query');
 
 
 app.use(express.json()); // for parsing application/json
+app.use(express.urlencoded({ extended: false }));
 
-app.use('/api/auth', authRoutes);
+app.use('/', authRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/vehicle', vehicleRoutes);
 app.use('/api/kyc/verify', kycRoutes);
