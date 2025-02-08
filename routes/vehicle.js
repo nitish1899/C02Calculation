@@ -20,6 +20,7 @@ router.get('/fueltype/:vehicleNumber', vehicleController.getFuelTypeByVehicleNum
 router.get('/carbonfootprint/diesel/:fuelType', vehicleController.getCarbonFootprintByDieselVehiclesAllTime);
 
 router.get('/carbonfootprint/dieselvehicles/:userId', vehicleController.getCarbonFootprintByDieselVehiclesByDate);
+router.get('/carbonfootprint/dieselvehicles1/:userId', vehicleController.getCarbonFootprintByDieselVehiclesByDate1);
 
 router.get('/routewiseEmission/:userId', vehicleController.getRouteWiseEmission);
 
