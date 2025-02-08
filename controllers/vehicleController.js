@@ -10,10 +10,11 @@ require('dotenv').config();
 const cron = require('node-cron');
 const { routes } = require('../models/routewiseEmission');
 const RoutewiseEmission = require('../models/routewiseEmission');
+const { generatePDF } = require('../utils/pdfGenerator');
 
 const mongoose = require('mongoose');
 
-const sourceAndDestination = ['Delhi', 'Mumbai', 'Bangalore', 'Hyderabad', 'Lucknow', 'Varanasi', 'Kolkata', 'Chennai', 'Chandigarh'];
+const sourceAndDestination = ['Delhi', 'Mumbai', 'Bengaluru', 'Hyderabad', 'Lucknow', 'Varanasi', 'Kolkata', 'Chennai', 'Chandigarh'];
 
 // const { getUlipToken } = require("../utils/ulipApiAccess.js");
 
@@ -255,7 +256,6 @@ async function findCO2Emission(req, res) {
             throw new Error('You have exceeded your free trial limit.');
         }
 
-
         // console.log('overallEmission', co2Emission);
         let currentDate = new Date();
         let month = monthNames[currentDate.getMonth()];
@@ -264,9 +264,9 @@ async function findCO2Emission(req, res) {
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
         const certificateNumber = generateUuidNumber();
 
-        console.log('fuelType:', vehicleJsonData?.rc_fuel_desc?.[0])
+        // console.log('fuelType:', vehicleJsonData?.rc_fuel_desc?.[0])
 
-        await InputHistory.create({
+        const inputHistory = await InputHistory.create({
             vehicleNumber,
             sourcePincode: SourcePincode,
             destinationPincode: DestinationPincode,
@@ -287,12 +287,52 @@ async function findCO2Emission(req, res) {
             vehicleNumber,
             certificateIssueDate,
             certificateNumber,
-            vehicleJsonData
+            vehicleJsonData,
+            id: inputHistory._id
         });
     } catch (error) {
         // console.log('error is : ', error.message)
         return res.status(404).json({ error: error.message });
     }
+}
+
+const generateCarbonFootprintPDF = async (req, res) => {
+    try {
+        const { userId, id } = req.body;
+
+        if (!userId) {
+            throw new Error('User Id is required!');
+        }
+
+        const user = User.findById(userId);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const inputHistory = await InputHistory.findById(id);
+
+        if (inputHistory.pdfUrl) {
+            return res.status(200).json({ success: true, url: inputHistory.url });
+        }
+
+        const response = await generatePDF(
+            {
+                certificateNumber: inputHistory.certificateNumber,
+                certificateIssueDate: inputHistory.certificateIssueDate,
+                userName: user.userName,
+                vehicleNumber: inputHistory.vehicleNumber,
+                co2Emission: inputHistory.co2Emission
+            });
+
+        inputHistory.pdfUrl = response.url;
+
+        return res.status(200).json({ success: true, url: response.url });
+    } catch (error) {
+        console.log(error.message);
+        return res.status(400).json({ success: false, error: error.message });
+    }
+
 }
 
 const addco2EmissionToRoute = async (user, co2Emission, sourceDetails, destinationDetails) => {
@@ -330,7 +370,7 @@ const addco2EmissionToRoute = async (user, co2Emission, sourceDetails, destinati
         // Save the updated record
         await routewiseEmissionData.save();
 
-        console.log(`Updated emissions for route ${route}: ${routewiseEmissionData.totalEmission}`);
+        // console.log(`Updated emissions for route ${route}: ${routewiseEmissionData.totalEmission}`);
     } catch (error) {
         console.error("Error updating CO2 emissions:", error);
     }
@@ -724,7 +764,7 @@ async function getCarbonFootprintByDieselVehiclesByDate(req, res) {
                     distance: { $toDouble: "$distance" }, // Ensure distance is treated as a number
                     createdAt: 1,
                     vehicleNumber: 1,
-                    fuelType: 1, 
+                    fuelType: 1,
                     updatedAt: 1
                 }
             },
@@ -863,7 +903,7 @@ const getRouteWiseEmission = async (req, res) => {
             const totalEmission = routeData ? routeData.totalEmission : 0;
             return { route, totalEmission };
         })
-        console.log(routewiseEmission);
+        // console.log(routewiseEmission);
         return res.status(200).json({
             success: true,
             routewiseEmissionData
@@ -1041,7 +1081,75 @@ async function getCarbonFootprintByDate(req, res) {
 //     }
 // }
 
+async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
+    try {
+        const { userId } = req.params;
+
+        // Validate userId
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID.' });
+        }
+
+        // Fetch and group diesel vehicle data by date and vehicleNumber
+        const data = await InputHistory.aggregate([
+            {
+                $match: {
+                    user: new mongoose.Types.ObjectId(userId), // Convert userId to ObjectId
+                    fuelType: "DIESEL"
+                }
+            },
+            {
+                $project: {
+                    carbonFootprint: { $toDouble: "$carbonFootprint" }, // Ensure carbonFootprint is treated as a number
+                    distance: { $toDouble: "$distance" }, // Ensure distance is treated as a number
+                    createdAt: 1,
+                    vehicleNumber: 1,
+                    fuelType: 1,
+                    updatedAt: 1
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // Group by date
+                        vehicleNumber: "$vehicleNumber" // Group by vehicleNumber
+                    },
+                    totalEmission: { $sum: "$carbonFootprint" }, // Sum emissions for each vehicle on the same date
+                    totalDistance: { $sum: "$distance" }, // Sum distances for each vehicle on the same date
+                    fuelType: { $first: "$fuelType" }, // Take the first fuelType in each group
+                    updatedAt: { $first: "$updatedAt" } // Take the first updatedAt in each group
+                }
+            },
+            { $sort: { "_id.date": 1, "_id.vehicleNumber": 1 } } // Sort by date and vehicleNumber ascending
+        ]);
+
+        if (data.length === 0) {
+            return res.status(404).json({ error: 'No diesel vehicle data found for the given user ID.' });
+        }
+
+        // Format the response
+        const response = data.map(item => ({
+            date: item._id.date,
+            vehicleNumber: item._id.vehicleNumber,
+            carbonFootprint: item.totalEmission.toFixed(2), // Limit to 2 decimal places
+            totalDistance: item.totalDistance.toFixed(2), // Limit to 2 decimal places
+            fuelType: item.fuelType,
+            updatedAt: item.updatedAt
+        }));
+
+        return res.status(200).json({
+            userId,
+            carbonFootprintData: response,
+            message: `Diesel vehicle carbon footprint and distance grouped by date and vehicle for user ID ${userId}`
+        });
+    } catch (error) {
+        console.error('Error fetching diesel vehicle carbon footprint by date and vehicle:', error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+}
+
 module.exports = {
-    findCO2Emission, findByVehicleCategory, getCabonFootPrints, getCarbonFootprintByVehicleNumberbydate, getCarbonFootprintByVehicleNumber, getFuelTypeByVehicleNumber, getCarbonFootprintByDieselVehiclesAllTime, getCarbonFootprintByDieselVehiclesByDate, ownerVehicleInfo, getRouteWiseEmission, getCarbonFootprintByDate
+    findCO2Emission, findByVehicleCategory, getCabonFootPrints, getCarbonFootprintByVehicleNumberbydate, getCarbonFootprintByVehicleNumber, getFuelTypeByVehicleNumber, getCarbonFootprintByDieselVehiclesAllTime, getCarbonFootprintByDieselVehiclesByDate, ownerVehicleInfo, getRouteWiseEmission, getCarbonFootprintByDate,
+    getCarbonFootprintByDieselVehiclesByDate1, generateCarbonFootprintPDF
 };
 

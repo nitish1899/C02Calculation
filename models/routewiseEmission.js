@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const routes = ['Delhi-Mumbai', 'Bangalore-Hyderabad', 'Lucknow-Varanasi', 'Kolkata-Chennai', 'Delhi-Chandigarh', 'Other Routes',];
+const routes = ['Delhi-Mumbai', 'Bengaluru-Hyderabad', 'Lucknow-Varanasi', 'Kolkata-Chennai', 'Delhi-Chandigarh', 'Other Routes',];
 
 const routewiseEmissionSchema = new mongoose.Schema(
     {
