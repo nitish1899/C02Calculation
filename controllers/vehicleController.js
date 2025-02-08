@@ -738,7 +738,7 @@ async function getCarbonFootprintByDieselVehiclesByDate(req, res) {
 const ownerVehicleInfo = async (req, res) => {
     try {
         const { userId } = req.params; // Extract userId from request parameters
-        const { startDate, endDate, daily, last7days, last15days, monthly } = req.query; // Extract timestamps from query parameters
+        const { startDate, endDate, daily, last7days, last15days, monthly, yearly, last5years, all } = req.query; // Extract timestamps from query parameters
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ error: 'Invalid user ID.' });
@@ -769,6 +769,27 @@ const ownerVehicleInfo = async (req, res) => {
             start.setDate(start.getDate() - 30); // Go back 30 days
             end = new Date();   // End is today
         }
+
+
+        if (yearly === "true") {
+            start = new Date(); // Set start to today
+            start.setFullYear(start.getFullYear());
+            start.setMonth(0, 1);
+            end = new Date();   // End is today
+        }
+
+        if (last5years === "true") {
+            start = new Date(); // Set start to today
+            start.setFullYear(start.getFullYear() - 5); // Go back 5 years
+            start.setMonth(0, 1);
+            end = new Date();   // End is today
+        }
+
+        if (all === "true") {
+            start = new Date(0); // Unix epoch start time (January 1, 1970)
+            end = new Date();    // End is today
+        }
+
 
         if (!start || !end) {
             return res.status(400).json({ error: 'Start and End dates are required.' });
