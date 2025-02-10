@@ -126,7 +126,9 @@ const uploadPDFToS3 = async (pdfBuffer) => {
 // Generate PDF Using Puppeteer
 
 const generatePDF = async ({ certificateNumber, certificateIssueDate, userName, vehicleNumber, co2Emission }) => {
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await puppeteer.launch({
+        headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     const page = await browser.newPage();
 
     // Convert HTML template to a PDF
