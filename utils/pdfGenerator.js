@@ -57,7 +57,7 @@ const pdfTemplate = ({ certificateNumber, certificateIssueDate, userName, vehicl
                 Certificate of CO2 Emission</h1>
 
             <p style="font-size: 18px; margin: 10px 0;">This is to certify that the vehicle owned/hired by</p>
-            <p style="font-size: 18px; margin: 10px 0; font-weight: bold; color: #2c3e50;" id="vehicleOwner">${userName ? userName : baseUsername}</p>
+            <p style="font-size: 18px; margin: 10px 0; font-weight: bold; color: #2c3e50;" id="vehicleOwner">${userName && userName.length > 0 ? userName : baseUsername}</p>
             <p style="font-size: 18px; margin: 10px 0;">with vehicle number</p>
             <p style="font-size: 18px; margin: 10px 0; font-weight: bold; color: #2c3e50;" id="vehicleNumber">${vehicleNumber}</p>
             <p style="font-size: 18px; margin: 10px 0;">has emitted</p>
