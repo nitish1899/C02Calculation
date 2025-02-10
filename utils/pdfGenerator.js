@@ -11,7 +11,7 @@ AWS.config.update({
 
 const s3 = new AWS.S3();
 
-const pdfTemplate = ({ certificateNumber, certificateIssueDate, userName, vehicleNumber, co2Emission }) => `
+const pdfTemplate = ({ certificateNumber, certificateIssueDate, userName, vehicleNumber, co2Emission, baseUsername }) => `
 <html lang="en">
 
 <head>
@@ -57,7 +57,7 @@ const pdfTemplate = ({ certificateNumber, certificateIssueDate, userName, vehicl
                 Certificate of CO2 Emission</h1>
 
             <p style="font-size: 18px; margin: 10px 0;">This is to certify that the vehicle owned/hired by</p>
-            <p style="font-size: 18px; margin: 10px 0; font-weight: bold; color: #2c3e50;" id="vehicleOwner">${userName}</p>
+            <p style="font-size: 18px; margin: 10px 0; font-weight: bold; color: #2c3e50;" id="vehicleOwner">${userName ? userName : baseUsername}</p>
             <p style="font-size: 18px; margin: 10px 0;">with vehicle number</p>
             <p style="font-size: 18px; margin: 10px 0; font-weight: bold; color: #2c3e50;" id="vehicleNumber">${vehicleNumber}</p>
             <p style="font-size: 18px; margin: 10px 0;">has emitted</p>
@@ -125,14 +125,14 @@ const uploadPDFToS3 = async (pdfBuffer) => {
 
 // Generate PDF Using Puppeteer
 
-const generatePDF = async ({ certificateNumber, certificateIssueDate, userName, vehicleNumber, co2Emission }) => {
+const generatePDF = async ({ certificateNumber, certificateIssueDate, userName, vehicleNumber, co2Emission, baseUsername }) => {
     const browser = await puppeteer.launch({
         headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
 
     // Convert HTML template to a PDF
-    const htmlContent = pdfTemplate({ certificateNumber, certificateIssueDate, userName, vehicleNumber, co2Emission });
+    const htmlContent = pdfTemplate({ certificateNumber, certificateIssueDate, userName, vehicleNumber, co2Emission, baseUsername });
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
     // Ensure it stays a single page

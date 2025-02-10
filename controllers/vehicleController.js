@@ -320,7 +320,8 @@ const generateCarbonFootprintPDF = async (req, res) => {
                 certificateIssueDate: inputHistory.certificateIssueDate,
                 userName: user.userName,
                 vehicleNumber: inputHistory.vehicleNumber,
-                co2Emission: inputHistory.co2Emission
+                co2Emission: inputHistory.carbonFootprint,
+                baseUsername: user.baseUsername,
             });
 
         inputHistory.pdfUrl = response.url;
