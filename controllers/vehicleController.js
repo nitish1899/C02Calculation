@@ -248,8 +248,6 @@ async function findCO2Emission(req, res) {
             }
         }
 
-
-
         const count = await InputHistory.countDocuments({ _user: userId });
 
         if (count > freeTrailCount) {
@@ -326,6 +324,8 @@ const generateCarbonFootprintPDF = async (req, res) => {
             });
 
         inputHistory.pdfUrl = response.url;
+
+        await inputHistory.save();
 
         return res.status(200).json({ success: true, url: response.url });
     } catch (error) {
@@ -761,10 +761,10 @@ async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
             },
             {
                 $project: {
-                    carbonFootprint: { 
+                    carbonFootprint: {
                         $ifNull: [{ $toDouble: "$carbonFootprint" }, 0]  // Default 0 if null
                     },
-                    distance: { 
+                    distance: {
                         $ifNull: [{ $toDouble: "$distance" }, 0]  // Default 0 if null
                     },
                     createdAt: 1,
@@ -789,7 +789,8 @@ async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
             carbonFootprint: (item.carbonFootprint || 0).toFixed(2), // Ensure value before toFixed
             totalDistance: (item.distance || 0).toFixed(2), // Ensure value before toFixed
             fuelType: item.fuelType || "DIESEL", // Default to "DIESEL"
-            updatedAt: item.updatedAt || new Date().toISOString() // Default current timestamp
+            updatedAt: item.updatedAt || new Date().toISOString(), // Default current timestamp
+            pdfUrl: item.pdfurl
         }));
 
         return res.status(200).json({
@@ -802,143 +803,6 @@ async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
         return res.status(500).json({ error: 'Internal server error.' });
     }
 }
-
-
-// async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
-//     try {
-//         const { userId } = req.params;
-
-//         // Validate userId
-//         if (!mongoose.Types.ObjectId.isValid(userId)) {
-//             return res.status(400).json({ error: 'Invalid user ID.' });
-//         }
-
-//         // Fetch and group diesel vehicle data by date and vehicleNumber
-//         const data = await InputHistory.aggregate([
-//             {
-//                 $match: {
-//                     user: new mongoose.Types.ObjectId(userId), // Convert userId to ObjectId
-//                     fuelType: "DIESEL"
-//                 }
-//             },
-//             {
-//                 $project: {
-//                     carbonFootprint: { $toDouble: "$carbonFootprint" }, // Convert to number
-//                     distance: { $toDouble: "$distance" }, // Convert to number
-//                     createdAt: 1,
-//                     vehicleNumber: 1,
-//                     fuelType: 1,
-//                     updatedAt: 1
-//                 }
-//             },
-//             {
-//                 $group: {
-//                     _id: {
-//                         date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // Group by date
-//                         vehicleNumber: "$vehicleNumber" // Group by vehicleNumber separately
-//                     },
-//                     totalEmission: { $sum: "$carbonFootprint" }, // Sum emissions for each vehicle on the same date
-//                     totalDistance: { $sum: "$distance" }, // Sum distances for each vehicle on the same date
-//                     fuelType: { $first: "$fuelType" }, // Keep fuelType
-//                     updatedAt: { $first: "$updatedAt" } // Keep updatedAt
-//                 }
-//             },
-//             { $sort: { "_id.date": 1, "_id.vehicleNumber": 1 } } // Sort by date and vehicleNumber ascending
-//         ]);
-
-//         if (data.length === 0) {
-//             return res.status(404).json({ error: 'No diesel vehicle data found for the given user ID.' });
-//         }
-
-//         // Format the response
-//         const response = data.map(item => ({
-//             date: item._id.date,
-//             vehicleNumber: item._id.vehicleNumber, // Each vehicle is now separate
-//             carbonFootprint: item.totalEmission.toFixed(2), // Limit to 2 decimal places
-//             totalDistance: item.totalDistance.toFixed(2), // Limit to 2 decimal places
-//             fuelType: item.fuelType,
-//             updatedAt: item.updatedAt
-//         }));
-
-//         return res.status(200).json({
-//             userId,
-//             carbonFootprintData: response,
-//             message: `Diesel vehicle carbon footprint and distance grouped by date and vehicle for user ID ${userId}`
-//         });
-//     } catch (error) {
-//         console.error('Error fetching diesel vehicle carbon footprint by date and vehicle:', error);
-//         return res.status(500).json({ error: 'Internal server error.' });
-//     }
-// }
-
-
-
-// async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
-//     try {
-//         const { userId } = req.params;
-
-//         // Validate userId
-//         if (!mongoose.Types.ObjectId.isValid(userId)) {
-//             return res.status(400).json({ error: 'Invalid user ID.' });
-//         }
-
-//         // Fetch and group diesel vehicle data by date and vehicleNumber
-//         const data = await InputHistory.aggregate([
-//             {
-//                 $match: {
-//                     user: new mongoose.Types.ObjectId(userId), // Convert userId to ObjectId
-//                     fuelType: "DIESEL"
-//                 }
-//             },
-//             {
-//                 $project: {
-//                     carbonFootprint: { $toDouble: "$carbonFootprint" }, // Ensure carbonFootprint is treated as a number
-//                     distance: { $toDouble: "$distance" }, // Ensure distance is treated as a number
-//                     createdAt: 1,
-//                     vehicleNumber: 1,
-//                     fuelType: 1,
-//                     updatedAt: 1
-//                 }
-//             },
-//             {
-//                 $group: {
-//                     _id: {
-//                         date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // Group by date
-//                         vehicleNumber: "$vehicleNumber" // Group by vehicleNumber
-//                     },
-//                     totalEmission: { $sum: "$carbonFootprint" }, // Sum emissions for each vehicle on the same date
-//                     totalDistance: { $sum: "$distance" }, // Sum distances for each vehicle on the same date
-//                     fuelType: { $first: "$fuelType" }, // Take the first fuelType in each group
-//                     updatedAt: { $first: "$updatedAt" } // Take the first updatedAt in each group
-//                 }
-//             },
-//             { $sort: { "_id.date": 1, "_id.vehicleNumber": 1 } } // Sort by date and vehicleNumber ascending
-//         ]);
-
-//         if (data.length === 0) {
-//             return res.status(404).json({ error: 'No diesel vehicle data found for the given user ID.' });
-//         }
-
-//         // Format the response
-//         const response = data.map(item => ({
-//             date: item._id.date,
-//             vehicleNumber: item._id.vehicleNumber,
-//             carbonFootprint: item.totalEmission.toFixed(2), // Limit to 2 decimal places
-//             totalDistance: item.totalDistance.toFixed(2), // Limit to 2 decimal places
-//             fuelType: item.fuelType,
-//             updatedAt: item.updatedAt
-//         }));
-
-//         return res.status(200).json({
-//             userId,
-//             carbonFootprintData: response,
-//             message: `Diesel vehicle carbon footprint and distance grouped by date and vehicle for user ID ${userId}`
-//         });
-//     } catch (error) {
-//         console.error('Error fetching diesel vehicle carbon footprint by date and vehicle:', error);
-//         return res.status(500).json({ error: 'Internal server error.' });
-//     }
-// }
 
 async function getCarbonFootprintByDieselVehiclesByDate(req, res) {
     try {
@@ -1222,84 +1086,6 @@ async function getCarbonFootprintByDate(req, res) {
     }
 }
 
-// async function getCarbonFootprintByDate(req, res) {
-//     try {
-//         const { fuelType, startDate, endDate, daily, last7days, monthly, yearly } = req.query;
-
-//         let start = startDate && startDate.length > 0 ? new Date(startDate) : null;
-//         let end = endDate && endDate.length > 0 ? new Date(endDate) : new Date();
-
-//         // Apply default filters based on user selection
-//         if (daily === "true") {
-//             start = new Date();
-//             start.setHours(0, 0, 0, 0);
-//             end = new Date();
-//             end.setHours(23, 59, 59, 999);
-//         } else if (last7days === "true") {
-//             start = new Date();
-//             start.setDate(start.getDate() - 7);
-//         } else if (monthly === "true") {
-//             start = new Date();
-//             start.setDate(start.getDate() - 30);
-//         } else if (yearly === "true") {
-//             start = new Date();
-//             start.setFullYear(start.getFullYear() - 1);
-//         }
-
-//         if (!start || !end) {
-//             return res.status(400).json({ error: 'Start and End dates are required.' });
-//         }
-
-//         start.setHours(0, 0, 0, 0);
-//         end.setHours(23, 59, 59, 999);
-
-//         const matchStage = {
-//             createdAt: { $gte: start, $lte: end }
-//         };
-
-//         // Apply fuel type filter if provided
-//         if (fuelType) {
-//             matchStage.fuelType = fuelType;
-//         }
-
-//         const data = await InputHistory.aggregate([
-//             { $match: matchStage },
-//             {
-//                 $project: {
-//                     carbonFootprint: { $toDouble: "$carbonFootprint" }, // Ensure numeric data
-//                     createdAt: 1,
-//                 },
-//             },
-//             {
-//                 $group: {
-//                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-//                     totalEmission: { $sum: "$carbonFootprint" },
-//                 },
-//             },
-//             { $sort: { "_id": 1 } },
-//         ]);
-
-//         if (data.length === 0) {
-//             return res.status(404).json({ error: 'No carbon footprint data found in the given date range.' });
-//         }
-
-//         return res.status(200).json({
-//             fuelType: fuelType || "All",
-//             startDate: start.toISOString().split("T")[0],
-//             endDate: end.toISOString().split("T")[0],
-//             carbonFootprintData: data.map(item => ({
-//                 date: item._id,
-//                 carbonFootprint: item.totalEmission.toFixed(2),
-//                 vehicleNumber: item.vehicleNumber,
-//                 fuelType: item.fuelType,
-//                 updatedAt: item.updatedAt
-//             })),
-//         });
-//     } catch (error) {
-//         console.error('Error fetching carbon footprint data:', error);
-//         return res.status(500).json({ error: 'Internal server error.' });
-//     }
-// }
 
 async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
     try {
@@ -1325,7 +1111,8 @@ async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
                     createdAt: 1,
                     vehicleNumber: 1,
                     fuelType: 1,
-                    updatedAt: 1
+                    updatedAt: 1,
+                    pdfUrl: 1
                 }
             },
             {
@@ -1337,7 +1124,8 @@ async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
                     totalEmission: { $sum: "$carbonFootprint" }, // Sum emissions for each vehicle on the same date
                     totalDistance: { $sum: "$distance" }, // Sum distances for each vehicle on the same date
                     fuelType: { $first: "$fuelType" }, // Take the first fuelType in each group
-                    updatedAt: { $first: "$updatedAt" } // Take the first updatedAt in each group
+                    updatedAt: { $first: "$updatedAt" }, // Take the first updatedAt in each group
+                    pdfUrl: { $first: "$pdfUrl" }
                 }
             },
             { $sort: { "_id.date": 1, "_id.vehicleNumber": 1 } } // Sort by date and vehicleNumber ascending
@@ -1354,7 +1142,8 @@ async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
             carbonFootprint: item.totalEmission.toFixed(2), // Limit to 2 decimal places
             totalDistance: item.totalDistance.toFixed(2), // Limit to 2 decimal places
             fuelType: item.fuelType,
-            updatedAt: item.updatedAt
+            updatedAt: item.updatedAt,
+            pdfUrl: item.pdfUrl,
         }));
 
         return res.status(200).json({
@@ -1370,8 +1159,8 @@ async function getCarbonFootprintByDieselVehiclesByDate1(req, res) {
 
 module.exports = {
     findCO2Emission, findByVehicleCategory, getCabonFootPrints, getCarbonFootprintByVehicleNumberbydate,
-     getCarbonFootprintByVehicleNumber, getFuelTypeByVehicleNumber, getCarbonFootprintByDieselVehiclesAllTime, 
-     getCarbonFootprintByDieselVehiclesByDate, ownerVehicleInfo, getRouteWiseEmission, getCarbonFootprintByDate,
+    getCarbonFootprintByVehicleNumber, getFuelTypeByVehicleNumber, getCarbonFootprintByDieselVehiclesAllTime,
+    getCarbonFootprintByDieselVehiclesByDate, ownerVehicleInfo, getRouteWiseEmission, getCarbonFootprintByDate,
     getCarbonFootprintByDieselVehiclesByDate1, generateCarbonFootprintPDF
 };
 

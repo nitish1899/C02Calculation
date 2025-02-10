@@ -2,12 +2,13 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
+const { generateUniqueUsername } = require('./auth');
 
 
 // Generate JWT Token
 const generateToken = (user) => {
   return jwt.sign(
-    { userId: user._id, email: user.email, userName: user.userName },
+    { userId: user._id, email: user.email, userName: user.userName, baseUsername: user.baseUsername },
     process.env.TOKEN_SECRET,
     { expiresIn: '1d' }
   );
@@ -30,12 +31,14 @@ exports.signup = async (req, res) => {
 
     // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
+    const baseUsername = await generateUniqueUsername({ email, fullName: userName });
 
     // Create new user
     const newUser = new User({
       userName,
       email,
       password: hashedPassword,
+      baseUsername,
     });
 
     // Save user to DB
@@ -75,7 +78,7 @@ exports.login = async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { _id: user._id, userName: user.userName, email: user.email },
+      user: { _id: user._id, userName: user.userName, email: user.email, generateUniqueUsername: user.generateUniqueUsername },
     });
   } catch (error) {
     console.error(error);  // Log the error for debugging
@@ -95,11 +98,15 @@ exports.googleLoginSuccess = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
+      const baseUsername = await generateUniqueUsername({ email, fullName: userName });
+      console.log('first Data', baseUsername);
+
       user = new User({
         userName,
         email,
         googleId,
         password: "", // Password is empty for Google users
+        baseUsername,
       });
       await user.save();
     }
@@ -108,7 +115,7 @@ exports.googleLoginSuccess = async (req, res) => {
     const token = generateToken(user);
 
     // Redirect to frontend with token
-    res.redirect(`http://localhost:3000/?token=${token}`);
+    res.redirect(`https://boisterous-paprenjak-38f5d4.netlify.app/?token=${token}`);
   } catch (error) {
     console.error("Google login error:", error.message);
     res.status(500).json({ message: "Error during Google login/signup", error: error.message });

@@ -3,6 +3,37 @@ const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+async function generateUniqueUsername({ email, fullName }) {
+  let baseUsername = "";
+
+  if (email) {
+    baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  } else if (fullName) {
+    baseUsername = fullName.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+  } else {
+    throw new Error("Either email or full name is required to generate a username.");
+  }
+
+  let attempt = 0;
+
+  // Ensure uniqueness by checking the database
+  while (await checkUsernameExists(baseUsername)) {
+    attempt++;
+    baseUsername = `${baseUsername}${attempt}`;
+  }
+
+  return baseUsername;
+}
+
+const checkUsernameExists = async (baseUsername) => {
+  try {
+    const user = await userModel.findOne({ baseUsername });
+    return user !== null;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+}
+
 async function register(req, res) {
   try {
     const { userName, mobileNumber, pin } = req.body;
@@ -15,10 +46,12 @@ async function register(req, res) {
 
     const hashPin = await bcrypt.hash(pin.toString(), 10);
 
+    const baseUsername = await generateUniqueUsername({ email: "", fullName: userName });
+
     // Find and update the user if they exist, or create a new user if they don't
     const newUser = await userModel.findOneAndUpdate(
       { mobileNumber },  // Find user by mobile number
-      { userName, pin: hashPin }, // Update or set these fields
+      { userName, pin: hashPin, baseUsername }, // Update or set these fields
       { new: true, upsert: true, setDefaultsOnInsert: true } // Options: return the new doc if one is upserted
     );
 
@@ -84,6 +117,7 @@ async function login(req, res) {
         userId: existingUser._id,
         userName: existingUser.userName,
         mobileNumber: existingUser.mobileNumber,
+        baseUsername: existingUser.baseUsername,
         // image:existingUser.image,
         // token: token,
       },
@@ -135,4 +169,4 @@ async function forgotPin(req, res) {
   }
 }
 
-module.exports = { register, login, forgotPin };
+module.exports = { register, login, forgotPin, generateUniqueUsername };

@@ -5,6 +5,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  baseUsername: {
+    type: String,
+    required: false,
+  },
   email: {
     type: String,
     required: true,
@@ -21,9 +25,10 @@ const userSchema = new mongoose.Schema({
   mobileNumber: {
     type: String,
   },
-  pin: { type: String,  required: false },
+  pin: { type: String, required: false },
   gstin: { type: String }
-});
+},
+  { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
