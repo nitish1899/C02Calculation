@@ -456,7 +456,7 @@ async function getCabonFootPrints(req, res) {
 
         const otherDetails = nearestVechileCategory.length ? nearestVechileCategory[0] : orderedVechileCategory[orderedVechileCategory.length - 1];
         // console.log('otherDetails', otherDetails);
-        const distanceString = await getDistance(SourcePincode, DestinationPincode);
+        const { distanceString, source, destination } = await getDistance(SourcePincode, DestinationPincode);
         // console.log('disString', distanceString);
         const distance = parseFloat(distanceString.replace(/[^\d.]/g, '')); // Removes non-numeric characters and parses as float
 
@@ -510,6 +510,20 @@ async function getCabonFootPrints(req, res) {
 
         // // Formulate the desired date string
         const certificateIssueDate = `${month} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
+
+        // const inputHistory = await InputHistory.create({
+        //     vehicleNumber,
+        //     sourcePincode: SourcePincode,
+        //     destinationPincode: DestinationPincode,
+        //     lodedWeight: LoadedWeight,
+        //     mobilizationDistance: MobilisationDistance,
+        //     deMobilizationDistance: DeMobilisationDistance,
+        //     carbonFootprint: co2Emission,
+        //     certificateNumber,
+        //     user: "",
+        //     fuelType: vehicleJsonData?.rc_fuel_desc?.[0],
+        //     distance,
+        // });
 
         return res.status(201).json({
             co2Emission: round(co2Emission, 2),
