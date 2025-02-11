@@ -99,7 +99,7 @@ exports.googleLoginSuccess = async (req, res) => {
 
     if (!user) {
       const baseUsername = await generateUniqueUsername({ email, fullName: userName });
-      console.log('first Data', baseUsername);
+      // console.log('first Data', baseUsername);
 
       user = new User({
         userName,
@@ -115,7 +115,7 @@ exports.googleLoginSuccess = async (req, res) => {
     const token = generateToken(user);
 
     // Redirect to frontend with token
-    res.redirect(`https://boisterous-paprenjak-38f5d4.netlify.app/?token=${token}`);
+    res.redirect(`https://pureprakruti79.netlify.app/?token=${token}`);
   } catch (error) {
     console.error("Google login error:", error.message);
     res.status(500).json({ message: "Error during Google login/signup", error: error.message });

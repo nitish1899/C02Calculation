@@ -303,7 +303,7 @@ const generateCarbonFootprintPDF = async (req, res) => {
         }
 
         const user = await User.findById(userId);
-        console.log('user data', user);
+        // console.log('user data', user);
 
         if (!user) {
             throw new Error('User not found');
